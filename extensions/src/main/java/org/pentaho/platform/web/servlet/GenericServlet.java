@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.servlet;
@@ -24,7 +27,6 @@ import org.apache.commons.logging.LogFactory;
 import org.owasp.encoder.Encode;
 import org.pentaho.platform.api.engine.ICacheManager;
 import org.pentaho.platform.api.engine.IContentGenerator;
-import org.pentaho.platform.api.engine.IMessageFormatter;
 import org.pentaho.platform.api.engine.IMimeTypeListener;
 import org.pentaho.platform.api.engine.IOutputHandler;
 import org.pentaho.platform.api.engine.IParameterProvider;
@@ -33,12 +35,12 @@ import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.engine.IPluginManager;
 import org.pentaho.platform.engine.core.solution.SimpleParameterProvider;
 import org.pentaho.platform.engine.core.system.PentahoRequestContextHolder;
-import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.platform.util.web.MimeHelper;
 import org.pentaho.platform.util.web.SimpleUrlFactory;
 import org.pentaho.platform.web.http.HttpOutputHandler;
+import org.pentaho.platform.web.http.MessageFormatUtils;
 import org.pentaho.platform.web.http.request.HttpRequestParameterProvider;
 import org.pentaho.platform.web.http.session.HttpSessionParameterProvider;
 import org.pentaho.platform.web.servlet.messages.Messages;
@@ -118,7 +120,6 @@ public class GenericServlet extends ServletBase {
     // BISERVER-2767 - grabbing the current class loader so we can replace it at the end
     ClassLoader origContextClassloader = Thread.currentThread().getContextClassLoader();
     try {
-      InputStream in = request.getInputStream();
       String servletPath = request.getServletPath();
       String pathInfo = request.getPathInfo();
       String contentGeneratorId = ""; //$NON-NLS-1$
@@ -141,8 +142,11 @@ public class GenericServlet extends ServletBase {
       }
       urlPath = "content/" + contentGeneratorId; //$NON-NLS-1$
 
+      IParameterProvider requestParameters = new HttpRequestParameterProvider( request );
       pathParams.setParameter( "query", request.getQueryString() ); //$NON-NLS-1$
       pathParams.setParameter( "contentType", request.getContentType() ); //$NON-NLS-1$
+
+      InputStream in = request.getInputStream();
       pathParams.setParameter( "inputstream", in ); //$NON-NLS-1$
       pathParams.setParameter( "httpresponse", response ); //$NON-NLS-1$
       pathParams.setParameter( "httprequest", request ); //$NON-NLS-1$
@@ -246,7 +250,6 @@ public class GenericServlet extends ServletBase {
       // String proxyClass = PentahoSystem.getSystemSetting( module+"/plugin.xml" ,
       // "plugin/content-generators/"+contentGeneratorId,
       // "content generator not found");
-      IParameterProvider requestParameters = new HttpRequestParameterProvider( request );
       // see if this is an upload
 
       // File uploading is a service provided by UploadFileServlet where appropriate protections
@@ -312,8 +315,7 @@ public class GenericServlet extends ServletBase {
       List errorList = new ArrayList();
       String msg = e.getMessage();
       errorList.add( msg );
-      PentahoSystem.get( IMessageFormatter.class, PentahoSessionHolder.getSession() ).formatFailureMessage(
-        "text/html", null, buffer, errorList ); //$NON-NLS-1$
+      MessageFormatUtils.formatFailureMessage( "text/html", null, buffer, errorList ); //$NON-NLS-1$
       response.getOutputStream().write( buffer.toString().getBytes( LocaleHelper.getSystemEncoding() ) );
 
     } finally {

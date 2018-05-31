@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2017 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.mantle.client.ui.xul;
@@ -280,8 +283,8 @@ public class MantleController extends AbstractXulEventHandler {
                   ( (MenuBar) themesMenu.getManagedObject() ).addItem( themeMenuItem );
                 }
 
-                bf.createBinding( model, "saveEnabled", saveMenuItem, "visible" ); //$NON-NLS-1$ //$NON-NLS-2$
-                bf.createBinding( model, "saveAsEnabled", saveAsMenuItem, "visible" ); //$NON-NLS-1$ //$NON-NLS-2$
+                bf.createBinding( model, "saveEnabled", saveMenuItem, "!disabled" ); //$NON-NLS-1$ //$NON-NLS-2$
+                bf.createBinding( model, "saveAsEnabled", saveAsMenuItem, "!disabled" ); //$NON-NLS-1$ //$NON-NLS-2$
 
                 if ( PerspectiveManager.getInstance().isLoaded() ) {
                   executeAdminContent();
@@ -946,12 +949,12 @@ public class MantleController extends AbstractXulEventHandler {
 
   @Bindable
   public boolean isSaveEnabled() {
-    return saveMenuItem.isVisible();
+    return saveMenuItem.isDisabled();
   }
 
   @Bindable
   public boolean isSaveAsEnabled() {
-    return saveAsMenuItem.isVisible();
+    return saveAsMenuItem.isDisabled();
   }
 
   @Bindable

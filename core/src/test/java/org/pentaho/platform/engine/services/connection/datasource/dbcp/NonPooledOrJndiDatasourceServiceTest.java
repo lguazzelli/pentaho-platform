@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,8 +14,10 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2017 - 2017 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
+
 package org.pentaho.platform.engine.services.connection.datasource.dbcp;
 
 import org.junit.Before;
@@ -79,6 +82,17 @@ public class NonPooledOrJndiDatasourceServiceTest {
   public void testRetrieveJNDIConnection_3() throws Exception {
     service = spy( getPreparedService( mgmtService, cacheManager, null, null ) );
     when( mgmtService.getDatasourceByName( testName ) ).thenReturn( connection );
+    when( connection.getAccessType() ).thenReturn( DatabaseAccessType.JNDI );
+    service.retrieve( testName );
+    verify( service, times( 2 ) ).getJndiDataSource( anyString() );
+    verify( cacheManager, never() ).putInRegionCache( IDBDatasourceService.JDBC_DATASOURCE, testName, jndiDataSource );
+  }
+
+  @Test
+  public void testRetrieveJNDIConnection_4() throws Exception {
+    service = spy( getPreparedService( mgmtService, cacheManager, null, null ) );
+    when( mgmtService.getDatasourceByName( testName ) ).thenReturn( connection );
+    when( service.getJndiDataSource( testName ) ).thenThrow( DBDatasourceServiceException.class ).thenCallRealMethod();
     when( connection.getAccessType() ).thenReturn( DatabaseAccessType.JNDI );
     service.retrieve( testName );
     verify( service, times( 2 ) ).getJndiDataSource( anyString() );

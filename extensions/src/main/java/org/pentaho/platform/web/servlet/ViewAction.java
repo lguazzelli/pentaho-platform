@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.servlet;
@@ -22,7 +25,6 @@ import org.apache.commons.logging.LogFactory;
 import org.pentaho.actionsequence.dom.IActionDefinition;
 import org.pentaho.platform.api.engine.IActionSequence;
 import org.pentaho.platform.api.engine.IBackgroundExecution;
-import org.pentaho.platform.api.engine.IMessageFormatter;
 import org.pentaho.platform.api.engine.IMimeTypeListener;
 import org.pentaho.platform.api.engine.IOutputHandler;
 import org.pentaho.platform.api.engine.IParameterProvider;
@@ -34,13 +36,13 @@ import org.pentaho.platform.api.repository.IContentItem;
 import org.pentaho.platform.api.repository2.unified.RepositoryFilePermission;
 import org.pentaho.platform.api.scheduler.BackgroundExecutionException;
 import org.pentaho.platform.engine.core.system.PentahoRequestContextHolder;
-import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.engine.services.ActionSequenceJCRHelper;
 import org.pentaho.platform.engine.services.runtime.ParameterManager;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.platform.util.web.SimpleUrlFactory;
 import org.pentaho.platform.web.http.HttpOutputHandler;
+import org.pentaho.platform.web.http.MessageFormatUtils;
 import org.pentaho.platform.web.http.request.HttpRequestParameterProvider;
 import org.pentaho.platform.web.servlet.messages.Messages;
 
@@ -191,14 +193,12 @@ public class ViewAction extends ServletBase {
         response.setContentType( htmlMimeType );
         StringBuffer buffer = new StringBuffer();
 
-        IMessageFormatter formatter = PentahoSystem.get( IMessageFormatter.class, PentahoSessionHolder.getSession() );
-
         if ( printSuccess ) {
           boolean doWrapper = !( "false".equals( request.getParameter( "wrapper" ) ) ); //$NON-NLS-1$ //$NON-NLS-2$
-          formatter.formatSuccessMessage( htmlMimeType, runtime, buffer, debugMessages, doWrapper );
+          MessageFormatUtils.formatSuccessMessage( htmlMimeType, runtime, buffer, debugMessages, doWrapper );
         } else {
           response.resetBuffer();
-          formatter.formatFailureMessage( htmlMimeType, runtime, buffer, requestHandler.getMessages() );
+          MessageFormatUtils.formatFailureMessage( htmlMimeType, runtime, buffer, requestHandler.getMessages() );
         }
 
         outputStream.write( buffer.toString().getBytes( LocaleHelper.getSystemEncoding() ) );
@@ -333,7 +333,7 @@ public class ViewAction extends ServletBase {
      */
 
     // Proposed fix for bug BISERVER-97 by Ezequiel Cuellar
-    // Changed to set parameterXsl from the value specified specified in the Pentaho.xml tag "default-parameter-xsl"
+    // Changed to set parameterXsl from the value specified specified in the Hitachi Vantara.xml tag "default-parameter-xsl"
     // Proposed fix for bug BISERVER-238 by Ezequiel Cuellar
     // Code refactoring. DefaultParameterForm.xsl was always getting set so I just refactored the code
     // by adding a default value of DefaultParameterForm.xsl when getting the value of default-parameter-xsl

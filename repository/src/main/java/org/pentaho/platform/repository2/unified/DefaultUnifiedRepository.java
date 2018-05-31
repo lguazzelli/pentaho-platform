@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.repository2.unified;
@@ -263,7 +265,7 @@ public class DefaultUnifiedRepository implements IUnifiedRepository {
       final Class<T> dataClass ) {
     return getDataForReadInBatch( files, dataClass );
   }
-  
+
   @Override
   public List<RepositoryFile> getChildren( RepositoryRequest repositoryRequest ) {
     return repositoryFileDao.getChildren( repositoryRequest );
@@ -273,13 +275,13 @@ public class DefaultUnifiedRepository implements IUnifiedRepository {
    * {@inheritDoc}
    */
   public List<RepositoryFile> getChildren( final Serializable folderId ) {
-    return getChildren( folderId, null, null);
+    return getChildren( folderId, null, null );
   }
 
   /**
    * {@inheritDoc}
    */
-  public List<RepositoryFile> getChildren( final Serializable folderId, final String filter) {
+  public List<RepositoryFile> getChildren( final Serializable folderId, final String filter ) {
     return getChildren( folderId, filter, null );
   }
 
@@ -351,6 +353,13 @@ public class DefaultUnifiedRepository implements IUnifiedRepository {
    */
   public List<RepositoryFile> getDeletedFiles() {
     return repositoryFileDao.getDeletedFiles();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public List<RepositoryFile> getAllDeletedFiles() {
+    return repositoryFileDao.getAllDeletedFiles();
   }
 
   /**
@@ -459,8 +468,7 @@ public class DefaultUnifiedRepository implements IUnifiedRepository {
   /**
    * {@inheritDoc}
    */
-  public void
-  restoreFileAtVersion( final Serializable fileId, final Serializable versionId, final String versionMessage ) {
+  public void restoreFileAtVersion( final Serializable fileId, final Serializable versionId, final String versionMessage ) {
     Assert.notNull( fileId );
     Assert.notNull( versionId );
     repositoryFileDao.restoreFileAtVersion( fileId, versionId, versionMessage );
@@ -473,7 +481,7 @@ public class DefaultUnifiedRepository implements IUnifiedRepository {
     Assert.notNull( fileId );
     return repositoryFileDao.canUnlockFile( fileId );
   }
-  
+
   /**
    * {@inheritDoc}
    */
@@ -493,8 +501,8 @@ public class DefaultUnifiedRepository implements IUnifiedRepository {
     Assert.hasText( path );
     return getTree( new RepositoryRequest( path, showHidden, depth, filter ) );
   }
-  
-    private RepositoryFile internalCreateFile( final Serializable parentFolderId, final RepositoryFile file,
+
+  private RepositoryFile internalCreateFile( final Serializable parentFolderId, final RepositoryFile file,
       final IRepositoryFileData data, final RepositoryFileAcl acl, final String versionMessage ) {
     Assert.notNull( file );
     Assert.notNull( data );

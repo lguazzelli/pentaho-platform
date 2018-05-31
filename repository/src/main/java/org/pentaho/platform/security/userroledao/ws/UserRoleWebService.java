@@ -1,24 +1,28 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
+ * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
  *
- * You should have received a copy of the GNU Lesser General Public License along with this
- * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+ * You should have received a copy of the GNU General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/gpl-2.0.html
  * or from the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU Lesser General Public License for more details.
+ * See the GNU General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.security.userroledao.ws;
 
 import org.apache.commons.lang.StringUtils;
 import org.pentaho.platform.api.engine.IAuthorizationPolicy;
+import org.pentaho.platform.api.engine.security.userroledao.AlreadyExistsException;
 import org.pentaho.platform.api.engine.security.userroledao.IPentahoRole;
 import org.pentaho.platform.api.engine.security.userroledao.IPentahoUser;
 import org.pentaho.platform.api.engine.security.userroledao.IUserRoleDao;
@@ -90,8 +94,21 @@ public class UserRoleWebService implements IUserRoleWebService {
 
   @Override
   public boolean createUser( ProxyPentahoUser proxyUser ) throws UserRoleException {
-    getDao().createUser( proxyUser.getTenant(), proxyUser.getName(), proxyUser.getPassword(),
-        proxyUser.getDescription(), null );
+    if ( StringUtils.isBlank( proxyUser.getName() ) ) {
+      UserRoleException blankUserException = new UserRoleException( Messages.getInstance().getString(
+        "HibernateUserRoleDao.ERROR_0002_USERNAME_CANNOT_BE_BLANK" ) );
+      // User doesn't want see a stack trace. We need to use this workaround. See details in PDI-14357.
+      blankUserException.setStackTrace( new StackTraceElement[0] );
+      throw blankUserException;
+    }
+    try {
+      getDao().createUser( proxyUser.getTenant(), proxyUser.getName(), proxyUser.getPassword(),
+              proxyUser.getDescription(), null );
+    } catch ( AlreadyExistsException e ) {
+      // User doesn't want see a stack trace. We need to use this workaround. See details in PDI-14357.
+      e.setStackTrace( new StackTraceElement[0] );
+      throw e;
+    }
     return true;
   }
 
@@ -215,7 +232,20 @@ public class UserRoleWebService implements IUserRoleWebService {
 
   @Override
   public boolean createRole( ProxyPentahoRole proxyRole ) throws UserRoleException {
-    getDao().createRole( proxyRole.getTenant(), proxyRole.getName(), proxyRole.getDescription(), new String[0] );
+    if ( StringUtils.isBlank( proxyRole.getName() ) ) {
+      UserRoleException blankRoleException = new UserRoleException( Messages.getInstance().getString(
+        "HibernateUserRoleDao.ERROR_0006_ROLE_NAME_CANNOT_BE_BLANK" ) );
+      // User doesn't want see a stack trace. We need to use this workaround. See details in PDI-14357.
+      blankRoleException.setStackTrace( new StackTraceElement[0] );
+      throw blankRoleException;
+    }
+    try {
+      getDao().createRole( proxyRole.getTenant(), proxyRole.getName(), proxyRole.getDescription(), new String[0] );
+    } catch ( AlreadyExistsException e ) {
+      // User doesn't want see a stack trace. We need to use this workaround. See details in PDI-14357.
+      e.setStackTrace( new StackTraceElement[0] );
+      throw e;
+    }
     return false;
   }
 

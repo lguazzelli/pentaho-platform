@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2017 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.mantle.client.solutionbrowser.fileproperties;
@@ -97,6 +100,8 @@ public class PermissionsPanel extends FlexTable implements IFileModifier {
 
   boolean origInheritAclFlag = false;
 
+  boolean isAdmin = false;
+
   ListBox usersAndRolesList = new ListBox( true );
 
   Label permissionsLabel = new Label( Messages.getString( "permissionsColon" ) ); //$NON-NLS-1$
@@ -129,6 +134,8 @@ public class PermissionsPanel extends FlexTable implements IFileModifier {
     addButton.getElement().setId( "sharePanelAddButton" );
     removeButton.getElement().setId( "sharePanelRemoveButton" );
 
+    setAdmin();
+
     removeButton.addClickHandler( new ClickHandler() {
 
       public void onClick( ClickEvent clickEvent ) {
@@ -146,6 +153,10 @@ public class PermissionsPanel extends FlexTable implements IFileModifier {
           usersAndRolesList.removeItem( usersAndRolesList.getSelectedIndex() );
           existingUsersAndRoles.remove( userOrRoleNameString );
         }
+        if ( usersAndRolesList.getItemCount() > 0 ) {
+          usersAndRolesList.setSelectedIndex( 0 );
+        }
+        buildPermissionsTable( fileInfo );
       }
     } );
 
@@ -372,7 +383,7 @@ public class PermissionsPanel extends FlexTable implements IFileModifier {
     writePermissionCheckBox.setEnabled( !inheritCheckBoxValue && !managePermissionCheckBoxValue
         && !deletePermissionCheckBoxValue );
     addButton.setEnabled( !inheritCheckBoxValue );
-    removeButton.setEnabled( !inheritCheckBoxValue );
+    removeButton.setEnabled( isRemovable() );
   }
 
   /**
@@ -420,14 +431,13 @@ public class PermissionsPanel extends FlexTable implements IFileModifier {
 
     refreshPermission();
 
-    if ( !isModifiableUserOrRole( fileInfo, userOrRoleString, recipientType ) ) {
+    if ( ( perms.contains( PERM_GRANT_PERM ) || perms.contains( PERM_ALL ) )
+      && ( !isModifiableUserOrRole( fileInfo, userOrRoleString, recipientType )
+        || ( !isAdmin && ( isOwner( userOrRoleString, USER_TYPE, fileInfo )
+        || isOwner( userOrRoleString, ROLE_TYPE, fileInfo ) ) ) ) && !inheritsCheckBox.getValue() ) {
       managePermissionCheckBox.setEnabled( false );
     }
 
-    addButton.setEnabled( !inheritsCheckBox.getValue() );
-    removeButton.setEnabled( !( isOwner( userOrRoleString, USER_TYPE, fileInfo ) || isOwner( userOrRoleString,
-        ROLE_TYPE, fileInfo ) || !isModifiableUserOrRole( fileInfo, userOrRoleString, recipientType ) )
-        && !inheritsCheckBox.getValue() );
   }
 
   /**
@@ -506,13 +516,15 @@ public class PermissionsPanel extends FlexTable implements IFileModifier {
    * @param fileInfo
    */
   public void init( RepositoryFile fileSummary, Document fileInfo ) {
-    this.fileInfo = fileInfo;
     this.origFileInfo = fileInfo;
     this.origInheritAclFlag = isInheritsAcls( fileInfo );
     initializePermissionPanel( fileInfo );
   }
 
   private void initializePermissionPanel( Document fileInfo ) {
+
+    this.fileInfo = fileInfo;
+
     usersAndRolesList.clear();
     existingUsersAndRoles.clear();
 
@@ -589,13 +601,17 @@ public class PermissionsPanel extends FlexTable implements IFileModifier {
     Element newPermission = fileInfo.createElement( PERMISSIONS_ELEMENT_NAME );
     Element newRecipient = fileInfo.createElement( RECIPIENT_ELEMENT_NAME );
     Element newRecipientType = fileInfo.createElement( RECIPIENT_TYPE_ELEMENT_NAME );
+    Element modifiableElementName = fileInfo.createElement( MODIFIABLE_ELEMENT_NAME );
     Text textNode = fileInfo.createTextNode( recipientName );
     newRecipient.appendChild( textNode );
     textNode = fileInfo.createTextNode( Integer.toString( recipientType ) );
     newRecipientType.appendChild( textNode );
+    textNode = fileInfo.createTextNode( Boolean.toString( true ) );
+    modifiableElementName.appendChild( textNode );
     newAces.appendChild( newPermission );
     newAces.appendChild( newRecipient );
     newAces.appendChild( newRecipientType );
+    newAces.appendChild( modifiableElementName );
 
     fileInfo.getDocumentElement().appendChild( newAces );
     // Base recipient is created at this point.
@@ -783,5 +799,58 @@ public class PermissionsPanel extends FlexTable implements IFileModifier {
       recipientType = "1";
     }
     return recipientType;
+  }
+
+  private Boolean isRemovable() {
+
+    if ( inheritsCheckBox.getValue() ) {
+      return false;
+    }
+
+    if ( usersAndRolesList.getItemCount() == 0 ) {
+      return false;
+    }
+
+    List<String> items = SelectUserOrRoleDialog.getSelectedItemsValue( usersAndRolesList );
+
+    if ( !items.isEmpty() ) {
+      for ( String userOrRoleString : items ) {
+        String recipientType = getRecipientTypeByValue( userOrRoleString );
+        String userOrRoleNameString = userOrRoleString.substring( 0, userOrRoleString.length() - 6 );
+        if ( !isRemovableUserOrRole( userOrRoleNameString, recipientType ) ) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  private Boolean isRemovableUserOrRole( String userOrRoleString, String recipientType ) {
+    return !( isOwner( userOrRoleString, USER_TYPE, fileInfo ) || isOwner( userOrRoleString,
+      ROLE_TYPE, fileInfo ) || !isModifiableUserOrRole( fileInfo, userOrRoleString, recipientType ) )
+      && !inheritsCheckBox.getValue();
+  }
+
+  private void setAdmin() {
+    try {
+      final String url = GWT.getHostPageBaseURL() + "api/repo/files/canAdminister"; //$NON-NLS-1$
+      RequestBuilder requestBuilder = new RequestBuilder( RequestBuilder.GET, url );
+      requestBuilder.setHeader( "accept", "text/plain" ); //$NON-NLS-1$ //$NON-NLS-2$
+      requestBuilder.setHeader( "If-Modified-Since", "01 Jan 1970 00:00:00 GMT" ); //$NON-NLS-1$ //$NON-NLS-2$
+      requestBuilder.sendRequest( null, new RequestCallback() {
+
+        public void onError( Request request, Throwable caught ) {
+          isAdmin = false;
+        }
+
+        public void onResponseReceived( Request request, Response response ) {
+          isAdmin = "true".equalsIgnoreCase( response.getText() ); //$NON-NLS-1$
+        }
+      } );
+    } catch ( RequestException e ) {
+      isAdmin = false;
+    }
   }
 }

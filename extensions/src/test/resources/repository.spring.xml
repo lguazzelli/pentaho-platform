@@ -6,7 +6,7 @@
        xmlns:sec="http://www.springframework.org/schema/security"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd 
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd 
-                           http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
+                           http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
                            http://www.pentaho.com/schema/pentaho-system http://www.pentaho.com/schema/pentaho-system.xsd"
        default-lazy-init="true">
 
@@ -26,7 +26,7 @@
     SpringSecurityLoginModule and SpringSecurityPrincipalProvider (pentaho-third-party-security project)
   -->
 
-  <bean id="IPasswordService" class="org.pentaho.platform.util.Base64PasswordService" scope="singleton"/>
+  <bean id="IPasswordService" class="org.pentaho.platform.util.KettlePasswordService" scope="singleton"/>
   <!-- An access decision manager used by the business objects. -->
   <bean id="businessAccessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
     <constructor-arg>

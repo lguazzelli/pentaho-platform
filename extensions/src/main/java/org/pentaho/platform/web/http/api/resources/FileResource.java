@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.http.api.resources;
@@ -183,7 +186,7 @@ public class FileResource extends AbstractJaxRSResource {
   }
 
   /**
-   * Performs a system restore of the Pentaho system. This includes content, schedules, users, roles, datasources, and
+   * Performs a system restore of the Hitachi Vantara system. This includes content, schedules, users, roles, datasources, and
    * the metastore.
    * <p/>
    * <p><b>Example Request:</b><br /> POST pentaho/api/repo/files/systemRestore </p>
@@ -198,9 +201,10 @@ public class FileResource extends AbstractJaxRSResource {
     @ResponseCode( code = 200, condition = "Successfully imported the Pentaho System" ),
     @ResponseCode( code = 403, condition = "User does not have administrative permissions" ),
     @ResponseCode( code = 500, condition = "Failure to complete the import." ) } )
-  public Response systemRestore( @FormDataParam( "fileUpload" ) InputStream fileUpload, @FormDataParam ( "overwriteFile" ) String overwriteFile ) {
+  public Response systemRestore( @FormDataParam( "fileUpload" ) InputStream fileUpload, @FormDataParam ( "overwriteFile" ) String overwriteFile,
+                                 @FormDataParam ( "applyAclSettings" ) String applyAclSettings, @FormDataParam ( "overwriteAclSettings" ) String overwriteAclSettings ) {
     try {
-      fileService.systemRestore( fileUpload, overwriteFile );
+      fileService.systemRestore( fileUpload, overwriteFile, applyAclSettings, overwriteAclSettings );
       return Response.ok().build();
     } catch ( PlatformImportException e ) {
       throw new WebApplicationException( Response.Status.INTERNAL_SERVER_ERROR );
@@ -1691,8 +1695,9 @@ public class FileResource extends AbstractJaxRSResource {
     @ResponseCode ( code = 500, condition = "Server Error." ) } )
   public RepositoryFileTreeDto doGetTree( @PathParam ( "pathId" ) String pathId, @QueryParam ( "depth" ) Integer depth,
                                           @QueryParam ( "filter" ) String filter, @QueryParam ( "showHidden" ) Boolean showHidden,
-                                          @DefaultValue ( "false" ) @QueryParam ( "includeAcls" ) Boolean includeAcls ) {
-    return fileService.doGetTree( pathId, depth, filter, showHidden, includeAcls );
+                                          @DefaultValue ( "false" ) @QueryParam ( "includeAcls" ) Boolean includeAcls,
+                                          @DefaultValue ( "false" ) @QueryParam ( "includeSysDirs" ) Boolean includeSystemFolders ) {
+    return fileService.doGetTree( pathId, depth, filter, showHidden, includeAcls, includeSystemFolders );
   }
 
   /**

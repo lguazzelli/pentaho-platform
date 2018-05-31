@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.http.api.resources;
@@ -821,8 +824,12 @@ public class UserRoleDaoResource extends AbstractJaxRSResource {
   }
 
   /**
-   * This is an administrative tool, that allows an administator the ability to change any users password by passing in the username and the new password.
-   * The fields are encapsulated in a user object containing a userName and password.
+   * This is an administrative tool, that allows an administrator the ability to change any users password by
+   * passing in the username and the new password.
+   *
+   * Additionally the current administrator password is needed to authorize the change.
+   *
+   * The fields are encapsulated in a user object containing a userName, password and administratorPassword.
    *
    * <p>
    * <b>Example Request:</b><br />
@@ -831,18 +838,22 @@ public class UserRoleDaoResource extends AbstractJaxRSResource {
    * <user>
    *   <userName>Joe</userName>
    *   <password>password</password>
+   *   <administratorPassword>administratorPassword</administratorPassword>
    * </user>
    * </pre>
    * </p>
    *
    * @param user
-   *          A user is an object the system uses to pass along a userName and password in the format:
+   *          A user is an object the system uses to pass along a userName, password and administratorPassword
+   *          in the format:
    *          <pre function="syntax.xml">
    *          <user>
    *            <userName>Joe</userName>
    *            <password>password</password>
+   *            <administratorPassword>administratorPassword</administratorPassword>
    *          </user>
    *          </pre>
+   *
    * @return response object containing the status code of the operation
    */
   @PUT
@@ -853,9 +864,10 @@ public class UserRoleDaoResource extends AbstractJaxRSResource {
     @ResponseCode ( code = 403, condition = "Only users with administrative privileges can access this method." ),
     @ResponseCode ( code = 500, condition = "Internal server error prevented the system from properly retrieving either the user or roles." )
     } )
-  public Response updatePassword( User user ) {
+  public Response updatePassword( UserChangePasswordDTO user ) {
     try {
-      userRoleDaoService.updatePassword( user );
+      userRoleDaoService.updatePassword( user, user.getAdministratorPassword() );
+
       return Response.ok().build();
     } catch ( SecurityException e ) {
       throw new WebApplicationException( Response.Status.FORBIDDEN );
@@ -900,13 +912,10 @@ public class UserRoleDaoResource extends AbstractJaxRSResource {
 
   protected void updateRolesForCurrentSession() {
     List<String> userRoles = userRoleDaoService.getRolesForUser( getSession().getName() ).getRoles();
-    GrantedAuthority[] authoritys = new GrantedAuthority[ userRoles.size() ];
+    List<GrantedAuthority> authorities = new ArrayList<>();
+    userRoles.forEach( role -> authorities.add( new SimpleGrantedAuthority( role ) ) );
 
-    for ( int i = 0; i < authoritys.length; i++ ) {
-      authoritys[ i ] = new SimpleGrantedAuthority( userRoles.get( i ) );
-    }
-
-    getSession().setAttribute( IPentahoSession.SESSION_ROLES, authoritys );
+    getSession().setAttribute( IPentahoSession.SESSION_ROLES, authorities );
   }
 
   protected IPentahoSession getSession() {

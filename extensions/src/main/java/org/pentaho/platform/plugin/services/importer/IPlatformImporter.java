@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.importer;
@@ -23,7 +26,7 @@ import org.pentaho.platform.plugin.services.importexport.IRepositoryImportLogger
 import java.util.Map;
 
 /**
- * Implementations handle importing the given content into the Pentaho System.
+ * Implementations handle importing the given content into the Hitachi Vantara System.
  * <p/>
  * User: nbaker Date: 6/18/12
  */

@@ -12,7 +12,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ * Copyright (c) 2002-2017 Hitachi Vantara..  All rights reserved.
  */
 
 /*
@@ -95,4 +95,11 @@ function updateHelperDiv( id ) {
         //restore select width to fixed
         $(selectSelector).css('width', $(outerDivId).outerWidth());
     }
+}
+
+function sendRequest( url ) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", url, false ); // send synchronous request
+    xmlHttp.send( null );
+    return xmlHttp.responseText;
 }

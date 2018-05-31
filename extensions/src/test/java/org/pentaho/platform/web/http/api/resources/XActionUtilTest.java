@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.http.api.resources;
@@ -39,6 +42,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.pentaho.platform.api.engine.IActionCompleteListener;
+import org.pentaho.platform.api.engine.IAuthorizationPolicy;
 import org.pentaho.platform.api.engine.IMessageFormatter;
 import org.pentaho.platform.api.engine.IMimeTypeListener;
 import org.pentaho.platform.api.engine.IOutputHandler;
@@ -81,6 +85,8 @@ public class XActionUtilTest {
 
   @Mock private IMessageFormatter formatter;
 
+  @Mock private IAuthorizationPolicy authPolicy;
+
   private IPentahoObjectFactory pentahoObjectFactoryUnified;
 
   @Before
@@ -111,6 +117,8 @@ public class XActionUtilTest {
             return engine;
           } else if ( IMessageFormatter.class.toString().equals( invocation.getArguments()[0].toString() ) ) {
             return formatter;
+          } else if ( IAuthorizationPolicy.class.toString().equals( invocation.getArguments()[0].toString() ) ) {
+            return authPolicy;
           } else {
             return null;
           }

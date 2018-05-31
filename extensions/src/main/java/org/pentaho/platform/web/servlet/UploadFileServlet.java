@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2017 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.servlet;
@@ -25,7 +28,6 @@ import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.engine.IAuthorizationPolicy;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
-import org.pentaho.platform.util.UUIDUtil;
 import org.pentaho.platform.web.servlet.messages.Messages;
 import org.pentaho.reporting.libraries.base.util.StringUtils;
 
@@ -75,7 +77,7 @@ public class UploadFileServlet extends HttpServlet implements Servlet {
       String fileName = getRequestParameter( standardRequestParameters, parsedMultiPartRequestParameters, "file_name" ); //$NON-NLS-1$
 
       if ( StringUtils.isEmpty( fileName ) ) {
-        fileName = UUIDUtil.getUUID().toString();
+        throw new ServletException( Messages.getInstance().getErrorString( "UploadFileServlet.ERROR_0010_FILE_NAME_INVALID" ) );
       }
       boolean isTemporary = false;
       if ( temporary != null ) {

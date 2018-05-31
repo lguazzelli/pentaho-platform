@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.api.engine.security;
@@ -24,7 +27,7 @@ package org.pentaho.platform.api.engine.security;
 public interface IAuthenticationRoleMapper {
 
   /**
-   * Takes a string name of third party role and returns the mapped Pentaho security role.
+   * Takes a string name of third party role and returns the mapped Hitachi Vantara security role.
    * 
    * @param ldapRole Third party role.
    * @return Returns the Pentaho security role.
@@ -32,7 +35,7 @@ public interface IAuthenticationRoleMapper {
   public String toPentahoRole( String thirdPartyRole );
 
   /**
-   * Takes a Pentaho security role and returns the mapped third party role.
+   * Takes a Hitachi Vantara security role and returns the mapped third party role.
    * 
    * @param pentahoRole Pentaho security role.
    * @return Returns the third party role.

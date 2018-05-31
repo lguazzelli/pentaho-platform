@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.api.engine;
@@ -31,7 +34,7 @@ import java.io.IOException;
 public interface IApplicationContext {
 
   /**
-   * Retrieves the fully qualified path to the location of the Pentaho solution, appending the path given in the
+   * Retrieves the fully qualified path to the location of the Hitachi Vantara solution, appending the path given in the
    * parameter. The path is formatted appropriately for the platform that the application is running on.
    * 
    * @param path

@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2017 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.servlet;
@@ -23,10 +26,13 @@ import org.pentaho.platform.api.engine.IActionSequenceResource;
 import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.repository2.unified.RepositoryFilePermission;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
+import org.pentaho.platform.engine.security.SecurityHelper;
 import org.pentaho.platform.engine.services.actionsequence.ActionSequenceResource;
 import org.pentaho.platform.util.StringUtil;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.platform.web.servlet.messages.Messages;
+
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -63,7 +69,7 @@ public class GetResource extends ServletBase {
 
       if ( ( resource == null ) || StringUtil.doesPathContainParentPathSegment( resource ) ) {
         error( Messages.getInstance().getErrorString( "GetResource.ERROR_0001_RESOURCE_PARAMETER_MISSING" ) ); //$NON-NLS-1$
-        response.setStatus( HttpServletResponse.SC_SERVICE_UNAVAILABLE );
+        response.sendError( HttpServletResponse.SC_SERVICE_UNAVAILABLE );
         return;
       }
       String resLower = resource.toLowerCase();
@@ -72,6 +78,15 @@ public class GetResource extends ServletBase {
       if ( resLower.endsWith( ".xsl" ) ) { //$NON-NLS-1$
         resourcePath = "system/custom/xsl/" + resource; //$NON-NLS-1$
       } else if ( resLower.endsWith( ".mondrian.xml" ) ) { //$NON-NLS-1$
+        // Ensure user is authenticated by checking the default role
+        String defaultRole = PentahoSystem.get( String.class, "defaultRole", null ); // gets defaultRole from pentahoObjects-s-s.x
+        if ( defaultRole != null ) {
+          if ( !SecurityHelper.getInstance().isGranted( session, new SimpleGrantedAuthority( defaultRole ) ) ) {
+            response.sendError( HttpServletResponse.SC_FORBIDDEN );
+            return;
+          }
+        }
+        // If no defaultRole is defined, then just continue action as per normal.
         resourcePath = resource;
       } else if ( resLower.endsWith( ".jpg" ) || resLower.endsWith( ".jpeg" )
         || resLower.endsWith( ".gif" ) || resLower.endsWith(
@@ -79,7 +94,7 @@ public class GetResource extends ServletBase {
         resourcePath = resource;
       } else {
         error( Messages.getInstance().getErrorString( "GetResource.ERROR_0002_INVALID_FILE", resource ) ); //$NON-NLS-1$
-        response.setStatus( HttpServletResponse.SC_SERVICE_UNAVAILABLE );
+        response.sendError( HttpServletResponse.SC_SERVICE_UNAVAILABLE );
         return;
       }
 
@@ -89,7 +104,7 @@ public class GetResource extends ServletBase {
       InputStream in = asqr.getInputStream( RepositoryFilePermission.READ, LocaleHelper.getLocale() );
       if ( in == null ) {
         error( Messages.getInstance().getErrorString( "GetResource.ERROR_0003_RESOURCE_MISSING", resourcePath ) ); //$NON-NLS-1$
-        response.setStatus( HttpServletResponse.SC_SERVICE_UNAVAILABLE );
+        response.sendError( HttpServletResponse.SC_SERVICE_UNAVAILABLE );
         return;
       }
       String mimeType = getServletContext().getMimeType( resourcePath );

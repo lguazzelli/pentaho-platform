@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2017 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.http.api.resources.services;
@@ -43,6 +46,10 @@ import org.pentaho.platform.web.http.api.resources.RoleListWrapper;
 import org.pentaho.platform.web.http.api.resources.SystemRolesMap;
 import org.pentaho.platform.web.http.api.resources.User;
 import org.pentaho.platform.web.http.api.resources.UserListWrapper;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -63,15 +70,19 @@ public class UserRoleDaoService {
   }
 
   public RoleListWrapper getRolesForUser( String user ) throws UncategorizedUserRoleDaoException {
-    ITenant tenant = TenantUtils.getCurrentTenant();
-    return new RoleListWrapper( getRoleDao().getUserRoles( tenant, user ) );
+    if ( canAdminister() ) { // Fix for PPP-3840
+      ITenant tenant = TenantUtils.getCurrentTenant();
+      return new RoleListWrapper( getRoleDao().getUserRoles( tenant, user ) );
+    } else {
+      throw new SecurityException();
+    }
   }
 
   public void assignRolesToUser( String userName, String roleNames )
-    throws NotFoundException, UncategorizedUserRoleDaoException, SecurityException {
+      throws NotFoundException, UncategorizedUserRoleDaoException, SecurityException {
     if ( canAdminister() ) {
       StringTokenizer tokenizer = new StringTokenizer( roleNames, "\t" );
-      Set<String> assignedRoles = new HashSet<String>();
+      Set<String> assignedRoles = new HashSet<>();
       ITenant tenant = TenantUtils.getCurrentTenant();
 
       //Build the set of roles the user already contians
@@ -83,17 +94,17 @@ public class UserRoleDaoService {
         assignedRoles.add( tokenizer.nextToken() );
       }
 
-      getRoleDao().setUserRoles( tenant, userName, assignedRoles.toArray( new String[ assignedRoles.size() ] ) );
+      getRoleDao().setUserRoles( tenant, userName, assignedRoles.toArray( new String[assignedRoles.size()] ) );
     } else {
       throw new SecurityException();
     }
   }
 
   public void removeRolesFromUser( String userName, String roleNames )
-    throws NotFoundException, UncategorizedUserRoleDaoException, SecurityException {
+      throws NotFoundException, UncategorizedUserRoleDaoException, SecurityException {
     if ( canAdminister() ) {
       StringTokenizer tokenizer = new StringTokenizer( roleNames, "\t" );
-      Set<String> assignedRoles = new HashSet<String>();
+      Set<String> assignedRoles = new HashSet<>();
       ITenant tenant = TenantUtils.getCurrentTenant();
 
       for ( IPentahoRole pentahoRole : getRoleDao().getUserRoles( tenant, userName ) ) {
@@ -197,7 +208,7 @@ public class UserRoleDaoService {
       if ( canAdminister() || ( null != pentahoSession && userName.equals( pentahoSession.getName() ) ) ) {
 
         final IUserRoleDao roleDao =
-          PentahoSystem.get( IUserRoleDao.class, "userRoleDaoProxy", pentahoSession );
+            PentahoSystem.get( IUserRoleDao.class, "userRoleDaoProxy", pentahoSession );
         IPentahoUser pentahoUser = roleDao.getUser( null, userName );
 
         if ( credentialValid( pentahoUser, oldPass ) ) {
@@ -220,7 +231,7 @@ public class UserRoleDaoService {
   }
 
   public void deleteUsers( String userNames )
-    throws NotFoundException, UncategorizedUserRoleDaoException, SecurityException {
+      throws NotFoundException, UncategorizedUserRoleDaoException, SecurityException {
     if ( canAdminister() ) {
       StringTokenizer tokenizer = new StringTokenizer( userNames, "\t" );
       while ( tokenizer.hasMoreTokens() ) {
@@ -254,11 +265,11 @@ public class UserRoleDaoService {
       SystemRolesMap systemRolesMap = new SystemRolesMap();
       for ( Map.Entry<String, String> localalizeNameEntry : roleBindingStruct.logicalRoleNameMap.entrySet() ) {
         systemRolesMap.getLocalizedRoleNames().add(
-          new LocalizedLogicalRoleName( localalizeNameEntry.getKey(), localalizeNameEntry.getValue() ) );
+            new LocalizedLogicalRoleName( localalizeNameEntry.getKey(), localalizeNameEntry.getValue() ) );
       }
       for ( Map.Entry<String, List<String>> logicalRoleAssignments : roleBindingStruct.bindingMap.entrySet() ) {
         systemRolesMap.getAssignments().add(
-          new LogicalRoleAssignment( logicalRoleAssignments.getKey(), logicalRoleAssignments.getValue(), roleBindingStruct.immutableRoles.contains( logicalRoleAssignments.getKey() ) )
+            new LogicalRoleAssignment( logicalRoleAssignments.getKey(), logicalRoleAssignments.getValue(), roleBindingStruct.immutableRoles.contains( logicalRoleAssignments.getKey() ) )
         );
       }
       return systemRolesMap;
@@ -277,6 +288,27 @@ public class UserRoleDaoService {
     }
   }
 
+  public void updatePassword( User user, String administratorPassword ) throws SecurityException {
+    final IPentahoSession pentahoSession = PentahoSessionHolder.getSession();
+
+    AuthenticationProvider authenticator = PentahoSystem.get( AuthenticationProvider.class, pentahoSession );
+    if ( authenticator == null ) {
+      throw new SecurityException( "Authentication Provider not found, can not re-authenticate logged-in user" );
+    }
+
+    try {
+      Authentication authentication = authenticator.authenticate( new UsernamePasswordAuthenticationToken( pentahoSession.getName(), administratorPassword ) );
+
+      if ( authentication.isAuthenticated() ) {
+        updatePassword( user );
+      } else {
+        throw new SecurityException( "Logged-in user re-authentication failed" );
+      }
+    } catch ( AuthenticationException e ) {
+      throw new SecurityException( "Logged-in user re-authentication failed", e );
+    }
+  }
+
   public void updatePassword( User user ) throws SecurityException {
     if ( canAdminister() ) {
       String userName = decode( user.getUserName() );
@@ -286,15 +318,17 @@ public class UserRoleDaoService {
       IPentahoUser puser = roleDao.getUser( null, userName );
       if ( puser != null ) {
         roleDao.setPassword( null, userName, password );
+      } else {
+        throw new SecurityException( "User not found" );
       }
     } else {
-      throw new SecurityException();
+      throw new SecurityException( "Logged-in user is not authorized to change password" );
     }
   }
 
   private boolean canAdminister() {
     return getPolicy().isAllowed( RepositoryReadAction.NAME ) && getPolicy().isAllowed( RepositoryCreateAction.NAME )
-      && ( getPolicy().isAllowed( AdministerSecurityAction.NAME ) );
+        && ( getPolicy().isAllowed( AdministerSecurityAction.NAME ) );
   }
 
   private IRoleAuthorizationPolicyRoleBindingDao getRoleBindingDao() {

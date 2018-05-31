@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,13 +14,14 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.engine.core.system.objfac.spring;
 
 /**
- * Constants used by Pentaho Spring extensions
+ * Constants used by Hitachi Vantara Spring extensions
  * 
  * User: nbaker Date: 3/6/13
  */

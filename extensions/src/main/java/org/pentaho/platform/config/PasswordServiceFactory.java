@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.config;
@@ -21,7 +24,7 @@ import org.pentaho.platform.api.util.IPasswordService;
 
 public class PasswordServiceFactory {
 
-  private static final String DEFAULT_IMPL = "org.pentaho.platform.util.Base64PasswordService"; //$NON-NLS-1$
+  private static final String DEFAULT_IMPL = "org.pentaho.platform.util.KettlePasswordService"; //$NON-NLS-1$
   private static IPasswordService currentService;
 
   static {
@@ -31,7 +34,7 @@ public class PasswordServiceFactory {
   public static synchronized void init( String classname ) {
     try {
       currentService = (IPasswordService) Class.forName( classname ).newInstance();
-    } catch ( Exception e ) {
+    } catch ( Throwable e ) {
       // wrap this as a runtime exception. This type of error is configuration related
       throw new RuntimeException( e );
     }
@@ -39,9 +42,9 @@ public class PasswordServiceFactory {
 
   /**
    * returns the current implementation of IPasswordService
-   * 
+   *
    * @return datasource service
-   * 
+   *
    * @throws RuntimeException
    *           if class cannot be instantiated
    */

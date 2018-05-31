@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,8 +13,11 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright 2016 Pentaho Corporation. All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
+
 package org.pentaho.platform.osgi;
 
 import org.apache.commons.lang.math.NumberUtils;
@@ -193,7 +197,6 @@ class ServerSocketBasedKarafInstanceResolver implements IKarafInstanceResolver {
     int testInstance = latestOffsetTried + 1;
     Integer instanceNo = null;
     do {
-
       int candidate = START_PORT_NUMBER + testInstance;
       Socket socket = null;
       try {
@@ -201,21 +204,18 @@ class ServerSocketBasedKarafInstanceResolver implements IKarafInstanceResolver {
         socket = new Socket( "localhost", candidate );
         socket.close();
       } catch ( ConnectException e ) {
-        // port not in-use
-
+       // port not in-use
         try {
           ServerSocket ssocket = new ServerSocket( candidate );
           instanceNo = testInstance;
           instance.setInstanceSocket( ssocket );
           instance.setInstanceNumber( instanceNo );
           logger.debug( "Karaf instance resolved to: " + instanceNo );
-        } catch ( IOException e1 ) {
-          logger.error( "Error creating ServerSocket", e1 );
+        } catch ( IOException ignored ) {
+          // couldn't bind port, move on to the next candidate
         }
-
-
       } catch ( IOException ignored ) {
-        // Some other error, move to next candidate
+        // socket test failed, move on to the next candidate
       }
     } while ( instanceNo == null && testInstance++ <= MAX_NUMBER_OF_KARAF_INSTANCES );
 

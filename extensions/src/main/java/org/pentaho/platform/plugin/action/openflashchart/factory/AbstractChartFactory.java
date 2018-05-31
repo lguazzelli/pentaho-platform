@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.action.openflashchart.factory;
@@ -235,12 +238,12 @@ public abstract class AbstractChartFactory implements IChartFactory {
   //
 
   protected void setupTitles() {
-    // in the Pentaho chart, range-title equals yLengend title
+    // in the Hitachi Vantara chart, range-title equals yLengend title
     Node rangeTitle = chartNode.selectSingleNode( RANGE_TITLE_NODE_LOC );
     Node rangeTitleFont = chartNode.selectSingleNode( RANGE_TITLE_FONT_NODE_LOC );
     Node title = chartNode.selectSingleNode( TITLE_NODE_LOC );
 
-    // in the Pentaho chart, domain-title equals xLengend title
+    // in the Hitachi Vantara chart, domain-title equals xLengend title
     Node domainTitle = chartNode.selectSingleNode( DOMAIN_TITLE_NODE_LOC );
     Node domainTitleFont = chartNode.selectSingleNode( DOMAIN_TITLE_FONT_NODE_LOC );
     Node titleFont = chartNode.selectSingleNode( TITLE_FONT_NODE_LOC );

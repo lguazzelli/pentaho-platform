@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.repository2.unified.webservices.jaxws;
@@ -105,7 +107,12 @@ public class DefaultUnifiedRepositoryJaxwsWebServiceIT extends DefaultUnifiedRep
     SecurityContextHolder.setStrategyName( SecurityContextHolder.MODE_GLOBAL );
 
     String address = "http://localhost:9000/repo";
-    Endpoint.publish( address, new DefaultUnifiedRepositoryJaxwsWebService( repo ) );
+
+    try {
+      Endpoint.publish( address, new DefaultUnifiedRepositoryJaxwsWebService( repo ) );
+    } catch ( Throwable th ) {
+      //ignore
+    }
 
     Service service =
         Service.create( new URL( "http://localhost:9000/repo?wsdl" ), new QName( "http://www.pentaho.org/ws/1.0",

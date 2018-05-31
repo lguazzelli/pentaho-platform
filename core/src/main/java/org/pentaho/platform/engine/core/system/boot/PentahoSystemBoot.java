@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.engine.core.system.boot;
@@ -36,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class is designed to help embedded deployments start the Pentaho system. {@link PentahoSystemBoot} is a
+ * This class is designed to help embedded deployments start the Hitachi Vantara system. {@link PentahoSystemBoot} is a
  * self-contained and very easy to configure platform initializer which does not impose the use of configuration
  * files on your filesystem. A booter instance gives you the flexibility to configure and run the platform entirely
  * in memory.
@@ -46,7 +48,7 @@ import java.util.List;
  * <li>Construct a {@link PentahoSystemBoot}
  * <li>define the system objects that your system requires, by using one of the {@link #define(Class, Class)}
  * variants
- * <li>(optionally) initialize the Pentaho system for processing requests by calling {@link #start()}
+ * <li>(optionally) initialize the Hitachi Vantara system for processing requests by calling {@link #start()}
  * </ol>
  * An extremely minimal platform might be configured like this:
  * 

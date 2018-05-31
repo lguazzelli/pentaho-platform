@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2017 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.api.scheduler2;
@@ -26,7 +29,25 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 
 public class JobParamsAdapter extends XmlAdapter<JobParams, Map<String, Serializable>> {
 
+  private static final String VARIABLES = "variables";
+  private static final String PARAMETERS = "parameters";
+
   public JobParams marshal( Map<String, Serializable> v ) throws Exception {
+    Object variables = v.get( VARIABLES );
+    Object parameters = v.get( PARAMETERS );
+    if ( parameters != null && parameters instanceof Map
+            && variables != null && variables instanceof Map ) {
+      Map<String, String> paramMap = (Map) parameters;
+      Map<String, String> variableMap = (Map) variables;
+      if ( !paramMap.isEmpty() && !variableMap.isEmpty() ) {
+        for ( Map.Entry<String, String> paramEntry : paramMap.entrySet() ) {
+          if ( variableMap.containsKey( paramEntry.getKey() ) && paramEntry.getValue() != null ) {
+            variableMap.remove( paramEntry.getKey() );
+          }
+        }
+      }
+    }
+
     ArrayList<JobParam> params = new ArrayList<JobParam>();
     for ( Map.Entry<String, Serializable> entry : v.entrySet() ) {
       if ( entry != null && entry.getKey() != null && entry.getValue() != null ) {
@@ -39,6 +60,15 @@ public class JobParamsAdapter extends XmlAdapter<JobParams, Map<String, Serializ
               params.add( jobParam );
             }
           }
+        } else if ( entry.getValue() instanceof Map ) {
+          ( (Map<String, Serializable>) entry.getValue() ).forEach( ( key, value ) -> {
+            if ( value != null ) {
+              JobParam jobParam = new JobParam();
+              jobParam.name = key;
+              jobParam.value = value.toString();
+              params.add( jobParam );
+            }
+          } );
         } else {
           JobParam jobParam = new JobParam();
           jobParam.name = entry.getKey();

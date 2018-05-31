@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.pluginmgr;
@@ -32,7 +35,6 @@ import org.pentaho.platform.api.engine.IPluginManagerListener;
 import org.pentaho.platform.api.engine.IPluginProvider;
 import org.pentaho.platform.api.engine.IPluginResourceLoader;
 import org.pentaho.platform.api.engine.IServiceManager;
-import org.pentaho.platform.api.engine.ISolutionFileMetaProvider;
 import org.pentaho.platform.api.engine.ObjectFactoryException;
 import org.pentaho.platform.api.engine.PlatformPluginRegistrationException;
 import org.pentaho.platform.api.engine.PluginBeanDefinition;
@@ -325,44 +327,6 @@ public class DefaultPluginManager implements IPluginManager {
     // index content types and define any file meta providers
     for ( IContentInfo info : plugin.getContentInfos() ) {
       contentTypeByExtension.put( info.getExtension(), info );
-
-      String metaProviderClass = plugin.getMetaProviderMap().get( info.getExtension() );
-
-      // if a meta-provider is defined for this content type, then register it...
-      if ( !StringUtils.isEmpty( metaProviderClass ) ) {
-        Class<?> clazz = null;
-        String defaultErrMsg =
-          Messages
-            .getInstance()
-            .getErrorString(
-              "PluginManager.ERROR_0013_FAILED_TO_SET_CONTENT_TYPE_META_PROVIDER", metaProviderClass,
-              info.getExtension() ); //$NON-NLS-1$
-
-        try {
-          // do a test load to fail early if class not found
-          clazz = loader.loadClass( metaProviderClass );
-        } catch ( Exception e ) {
-          throw new PlatformPluginRegistrationException( defaultErrMsg, e );
-        }
-
-        // check that the class is an accepted type
-        if ( !( ISolutionFileMetaProvider.class.isAssignableFrom( clazz ) ) ) {
-          throw new PlatformPluginRegistrationException(
-            Messages
-              .getInstance()
-              .getErrorString(
-                "PluginManager.ERROR_0019_WRONG_TYPE_FOR_CONTENT_TYPE_META_PROVIDER", metaProviderClass,
-                info.getExtension() ) ); //$NON-NLS-1$
-        }
-
-        // the class is ok, so register it with the factory
-        assertUnique( plugin.getId(), METAPROVIDER_KEY_PREFIX + info.getExtension() );
-        BeanDefinition beanDef =
-          BeanDefinitionBuilder.rootBeanDefinition( metaProviderClass ).setScope( BeanDefinition.SCOPE_PROTOTYPE )
-            .getBeanDefinition();
-        beanFactoryMap.get( plugin.getId() ).registerBeanDefinition( METAPROVIDER_KEY_PREFIX + info.getExtension(),
-          beanDef );
-      }
     }
   }
 

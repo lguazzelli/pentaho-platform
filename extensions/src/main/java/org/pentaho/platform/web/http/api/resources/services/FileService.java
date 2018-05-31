@@ -1,19 +1,21 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, version 2 as published by the Free Software
+ * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
  *
- * You should have received a copy of the GNU General Public License along with this
- * program; if not, you can obtain a copy at http://www.gnu.org/licenses/gpl-2.0.html
+ * You should have received a copy of the GNU Lesser General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  * or from the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ * See the GNU Lesser General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.http.api.resources.services;
@@ -81,6 +83,7 @@ import org.pentaho.platform.plugin.services.importexport.ExportHandler;
 import org.pentaho.platform.plugin.services.importexport.IRepositoryImportLogger;
 import org.pentaho.platform.plugin.services.importexport.SimpleExportProcessor;
 import org.pentaho.platform.plugin.services.importexport.ZipExportProcessor;
+import org.pentaho.platform.plugin.services.importexport.ImportSession;
 import org.pentaho.platform.repository.RepositoryDownloadWhitelist;
 import org.pentaho.platform.repository2.ClientRepositoryPaths;
 import org.pentaho.platform.repository2.locale.PentahoLocale;
@@ -147,12 +150,14 @@ public class FileService {
     }
   }
 
-  public void systemRestore( final InputStream fileUpload, String overwriteFile ) throws PlatformImportException, SecurityException {
+  public void systemRestore( final InputStream fileUpload, String overwriteFile,
+                             String applyAclSettings, String overwriteAclSettings ) throws PlatformImportException, SecurityException {
     if ( doCanAdminister() ) {
-      boolean overwriteFileFlag = ( "false".equals( overwriteFile ) ? false : true );
+      boolean overwriteFileFlag = !"false".equals( overwriteFile );
+      boolean applyAclSettingsFlag = !"false".equals( applyAclSettings );
+      boolean overwriteAclSettingsFlag = "true".equals( overwriteAclSettings );
       IRepositoryImportLogger importLogger = null;
       Level level = Level.ERROR;
-      boolean logJobStarted = false;
       ByteArrayOutputStream importLoggerStream = new ByteArrayOutputStream();
       String importDirectory = "/";
       RepositoryFileImportBundle.Builder bundleBuilder = new RepositoryFileImportBundle.Builder();
@@ -163,21 +168,20 @@ public class FileService {
       bundleBuilder.path( importDirectory );
       bundleBuilder.overwriteFile( overwriteFileFlag );
       bundleBuilder.name( "SystemBackup.zip" );
-      bundleBuilder.applyAclSettings( true );
-      bundleBuilder.overwriteAclSettings( false );
+      bundleBuilder.applyAclSettings( applyAclSettingsFlag );
+      bundleBuilder.overwriteAclSettings( overwriteAclSettingsFlag );
       bundleBuilder.retainOwnership( true );
       bundleBuilder.preserveDsw( true );
 
+      ImportSession.getSession().setAclProperties( applyAclSettingsFlag, true, overwriteAclSettingsFlag );
+
       IPlatformImporter importer = PentahoSystem.get( IPlatformImporter.class );
       importLogger = importer.getRepositoryImportLogger();
-      logJobStarted = true;
       importLogger.startJob( importLoggerStream, importDirectory, level );
       try {
         importer.importFile( bundleBuilder.build() );
       } finally {
-        if ( logJobStarted == true ) {
-          importLogger.endJob();
-        }
+        importLogger.endJob();
       }
     } else {
       throw new SecurityException();
@@ -1334,6 +1338,11 @@ public class FileService {
 
   public RepositoryFileTreeDto doGetTree( String pathId, Integer depth, String filter, Boolean showHidden,
                                           Boolean includeAcls ) {
+    return doGetTree( pathId, depth, filter, showHidden, includeAcls, false /* default */ );
+  }
+
+  public RepositoryFileTreeDto doGetTree( String pathId, Integer depth, String filter, Boolean showHidden,
+                                          Boolean includeAcls, Boolean includeSystemFolders ) {
     String path = null;
     if ( pathId == null || pathId.equals( FileUtils.PATH_SEPARATOR ) ) {
       path = FileUtils.PATH_SEPARATOR;
@@ -1343,9 +1352,10 @@ public class FileService {
 
     RepositoryRequest repositoryRequest = getRepositoryRequest( path, showHidden, depth, filter );
     repositoryRequest.setIncludeAcls( includeAcls );
+    repositoryRequest.setIncludeSystemFolders( includeSystemFolders );
 
     RepositoryFileTreeDto tree = getRepoWs().getTreeFromRequest( repositoryRequest );
-    List<RepositoryFileTreeDto> filteredChildren = new ArrayList<RepositoryFileTreeDto>();
+
 
     // BISERVER-9599 - Use special sort order
     if ( isShowingTitle( repositoryRequest ) ) {
@@ -1353,18 +1363,6 @@ public class FileService {
       collator.setStrength( Collator.PRIMARY ); // ignore case
       sortByLocaleTitle( collator, tree );
     }
-
-    for ( RepositoryFileTreeDto child : tree.getChildren() ) {
-      RepositoryFileDto file = child.getFile();
-      Map<String, Serializable> fileMeta = getRepository().getFileMetadata( file.getId() );
-      boolean isSystemFolder =
-        fileMeta.containsKey( IUnifiedRepository.SYSTEM_FOLDER ) ? (Boolean) fileMeta
-          .get( IUnifiedRepository.SYSTEM_FOLDER ) : false;
-      if ( !isSystemFolder ) {
-        filteredChildren.add( child );
-      }
-    }
-    tree.setChildren( filteredChildren );
 
     return tree;
   }
@@ -1555,7 +1553,7 @@ public class FileService {
     return doCreateDirFor( path );
   }
 
-  private boolean doCreateDirFor( String pathWithSlashes ) {
+  protected boolean doCreateDirFor( String pathWithSlashes ) {
     String[] folders = pathWithSlashes.split( "[" + FileUtils.PATH_SEPARATOR + "]" ); //$NON-NLS-1$//$NON-NLS-2$
     RepositoryFileDto parentDir = getRepoWs().getFile( FileUtils.PATH_SEPARATOR );
     boolean dirCreated = false;
@@ -1611,7 +1609,7 @@ public class FileService {
       return false;
     }
 
-    String folderName = FilenameUtils.getName( path );
+    String folderName = decode( FilenameUtils.getName( path ) );
     return !".".equals( folderName ) && !"..".equals( folderName );
   }
 

@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.repository.solution.filebased;
@@ -23,11 +25,11 @@ import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemConfigBuilder;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
-import org.apache.commons.vfs2.provider.FileProvider;
+import org.apache.commons.vfs2.provider.AbstractFileProvider;
 
 import java.util.Collection;
 
-public class SolutionRepositoryVfs implements FileProvider {
+public class SolutionRepositoryVfs extends AbstractFileProvider {
 
   public SolutionRepositoryVfs() {
     super();

@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.action.builtin;
@@ -21,9 +24,7 @@ import org.pentaho.platform.api.action.IPostProcessingAction;
 import org.pentaho.platform.api.action.IStreamProcessingAction;
 import org.pentaho.platform.api.action.IStreamingAction;
 import org.pentaho.platform.api.action.IVarArgsAction;
-import org.pentaho.platform.api.engine.IComponent;
 import org.pentaho.platform.api.engine.ILogger;
-import org.pentaho.platform.api.engine.IMessageFormatter;
 import org.pentaho.platform.api.engine.IOutputHandler;
 import org.pentaho.platform.api.engine.IParameterProvider;
 import org.pentaho.platform.api.engine.IRuntimeContext;
@@ -40,6 +41,7 @@ import org.pentaho.platform.repository2.unified.fileio.RepositoryFileOutputHandl
 import org.pentaho.platform.repository2.unified.fileio.RepositoryFileOutputStream;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.platform.util.web.MimeHelper;
+import org.pentaho.platform.web.http.MessageFormatUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -116,7 +118,7 @@ public class ActionSequenceAction implements IStreamProcessingAction, IStreaming
           if ( !isFlushed ) {
             if ( isEmpty ) {
               StringBuffer buffer = new StringBuffer();
-              PentahoSystem.get( IMessageFormatter.class, null ).formatSuccessMessage( "text/html", rt, buffer, false ); //$NON-NLS-1$
+              MessageFormatUtils.formatSuccessMessage( "text/html", rt, buffer, false ); //$NON-NLS-1$
               xactionResultsOutputStream.write( buffer.toString().getBytes( LocaleHelper.getSystemEncoding() ) );
             }
             xactionResultsOutputStream.close();
@@ -124,7 +126,7 @@ public class ActionSequenceAction implements IStreamProcessingAction, IStreaming
         } else {
           // we need an error message...
           StringBuffer buffer = new StringBuffer();
-          PentahoSystem.get( IMessageFormatter.class, null ).formatFailureMessage( "text/html", rt, buffer, messages ); //$NON-NLS-1$
+          MessageFormatUtils.formatFailureMessage( "text/html", rt, buffer, messages ); //$NON-NLS-1$
           xactionResultsOutputStream.write( buffer.toString().getBytes( LocaleHelper.getSystemEncoding() ) );
           xactionResultsOutputStream.close();
         }

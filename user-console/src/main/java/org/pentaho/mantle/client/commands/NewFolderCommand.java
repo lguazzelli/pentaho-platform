@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.mantle.client.commands;
@@ -37,7 +40,6 @@ import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
-import com.google.gwt.http.client.URL;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextBox;
@@ -124,7 +126,7 @@ public class NewFolderCommand extends AbstractCommand {
           return;
         }
 
-        solutionPath = parentFolder.getPath() + "/" + URL.encodePathSegment( folderNameTextBox.getText() );
+        solutionPath = parentFolder.getPath() + "/" + folderNameTextBox.getText();
 
         String createDirUrl = contextURL + "api/repo/dirs/" + SolutionBrowserPanel.pathToId( solutionPath ); //$NON-NLS-1$
         RequestBuilder createDirRequestBuilder = new RequestBuilder( RequestBuilder.PUT, createDirUrl );
@@ -146,7 +148,7 @@ public class NewFolderCommand extends AbstractCommand {
 
             @Override
             public void onResponseReceived( Request createFolderRequest, Response createFolderResponse ) {
-              if ( createFolderResponse.getStatusText().equalsIgnoreCase( "OK" ) ) { //$NON-NLS-1$
+              if ( createFolderResponse.getStatusCode() == 200 ) {
                 NewFolderCommand.this.callback.onHandle( solutionPath );
                 new RefreshRepositoryCommand().execute( false );
                 event.setMessage( "Success" );

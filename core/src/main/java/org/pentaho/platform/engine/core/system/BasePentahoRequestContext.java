@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.engine.core.system;
@@ -30,7 +32,7 @@ public class BasePentahoRequestContext implements IPentahoRequestContext {
     super();
     if ( contextPath != null ) {
       String draftPath = contextPath + ( contextPath.endsWith( SLASH ) ? EMPTY : SLASH );
-      this.contextPath = draftPath.replaceAll( "(/){2,}", SLASH );
+      this.contextPath = draftPath.replaceAll( "(?<!^http:)(/){2,}", SLASH );
     } else {
       String path = PentahoSystem.getApplicationContext().getFullyQualifiedServerURL();
       this.contextPath = path + ( path != null && path.endsWith( SLASH ) ? EMPTY : SLASH );

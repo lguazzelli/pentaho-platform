@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,10 +13,22 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.importer;
+
+import org.apache.commons.lang.StringUtils;
+import org.pentaho.platform.api.mimetype.IPlatformMimeResolver;
+import org.pentaho.platform.api.repository2.unified.IPlatformImportBundle;
+import org.pentaho.platform.api.repository2.unified.RepositoryFile;
+import org.pentaho.platform.engine.core.system.PentahoSystem;
+import org.pentaho.platform.plugin.services.importexport.ExportFileNameEncoder;
+import org.pentaho.platform.plugin.services.importexport.ImportSession;
+import org.pentaho.platform.plugin.services.importexport.ImportSource.IRepositoryFileBundle;
+import org.pentaho.platform.repository.RepositoryFilenameUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -25,16 +38,6 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 import java.util.PropertyResourceBundle;
-
-import org.apache.commons.lang.StringUtils;
-import org.pentaho.platform.api.repository2.unified.IPlatformImportBundle;
-import org.pentaho.platform.api.mimetype.IPlatformMimeResolver;
-import org.pentaho.platform.api.repository2.unified.RepositoryFile;
-import org.pentaho.platform.engine.core.system.PentahoSystem;
-import org.pentaho.platform.plugin.services.importexport.ExportFileNameEncoder;
-import org.pentaho.platform.plugin.services.importexport.ImportSession;
-import org.pentaho.platform.plugin.services.importexport.ImportSource.IRepositoryFileBundle;
-import org.pentaho.platform.repository.RepositoryFilenameUtils;
 
 /**
  * this class is used to handle .properties files that are XACTION or URL files that contain the metadata used for
@@ -111,8 +114,19 @@ public class LocaleFilesProcessor {
       if ( !StringUtils.isEmpty( name ) ) {
         String filePath = ( actualFilePath.equals( "/" ) || actualFilePath.equals( "\\" ) ) ? "" : actualFilePath;
         filePath = RepositoryFilenameUtils.concat( parentPath, filePath );
-        LocaleFileDescriptor localeFile =
-            new LocaleFileDescriptor( name, description, filePath, localeRepositoryFile, inputStream );
+        LocaleFileDescriptor localeFile;
+        switch ( sourceVersion ) {
+          case 1:
+            localeFile = new LocaleFileDescriptor( name, PROPERTIES_EXT, description, filePath, localeRepositoryFile,
+              inputStream );
+            break;
+          case 2:
+            localeFile =
+              new LocaleFileDescriptor( name, LOCALE_EXT, description, filePath, localeRepositoryFile, inputStream );
+            break;
+          default:
+            localeFile = new LocaleFileDescriptor( name, description, filePath, localeRepositoryFile, inputStream );
+        }
         localeFiles.add( localeFile );
 
         /**
@@ -165,8 +179,15 @@ public class LocaleFilesProcessor {
     }
 
     if ( !StringUtils.isEmpty( name ) ) {
+      LocaleFileDescriptor localeFile;
+      if ( name.endsWith( PROPERTIES_EXT ) ) {
+        localeFile = new LocaleFileDescriptor( name, PROPERTIES_EXT, description, filePath, rf.build(), is );
+      } else if ( name.endsWith( LOCALE_EXT ) ) {
+        localeFile = new LocaleFileDescriptor( name, LOCALE_EXT, description, filePath, rf.build(), is );
+      } else {
+        localeFile = new LocaleFileDescriptor( name, description, filePath, rf.build(), is );
+      }
 
-      LocaleFileDescriptor localeFile = new LocaleFileDescriptor( name, description, filePath, rf.build(), is );
       localeFiles.add( localeFile );
 
       success = true;
@@ -180,15 +201,49 @@ public class LocaleFilesProcessor {
     IPlatformMimeResolver mimeResolver = PentahoSystem.get( IPlatformMimeResolver.class );
     String mimeType = mimeResolver.resolveMimeForFileName( FILE_LOCALE_RESOLVER );
 
+    List<String> filesWithLocaleFiles = new ArrayList<>();
+
+    //if there is a .locale file in a folder, we should not import the .properties file on that same folder
     for ( LocaleFileDescriptor localeFile : localeFiles ) {
-      bundleBuilder.name( localeFile.getName() );
-      bundleBuilder.comment( localeFile.getDescription() );
-      bundleBuilder.path( localeFile.getPath() );
-      bundleBuilder.file( localeFile.getFile() );
-      bundleBuilder.input( localeFile.getInputStream() );
-      bundleBuilder.mime( mimeType );
-      IPlatformImportBundle platformImportBundle = bundleBuilder.build();
-      importer.importFile( platformImportBundle );
+      String extension = localeFile.getExtension();
+      if ( !StringUtils.isEmpty( extension ) && extension.equals( LOCALE_EXT ) ) {
+        //substringing the actual name for the dot char, make sure that things like <filename.xaction.locale> get converted
+        //to <filename>, since it can exist a <filename.properties> file which we don't want to import
+        String actualFileName = localeFile.getFile().getName().indexOf( "." ) != -1
+          ?
+          localeFile.getFile().getName().substring( 0, localeFile.getFile().getName().indexOf( "." ) )
+          :
+          localeFile.getFile().getName();
+        filesWithLocaleFiles.add( localeFile.getPath() +  actualFileName );
+      }
     }
+
+    for ( LocaleFileDescriptor localeFile : localeFiles ) {
+      String extension = localeFile.getExtension();
+      if ( !StringUtils.isEmpty( extension ) && extension.equals( PROPERTIES_EXT ) ) {
+        //.properties files are only added if there is no .locale file for the file
+        String actualFileName = localeFile.getFile().getName().indexOf( "." ) != -1
+          ?
+          localeFile.getFile().getName().substring( 0, localeFile.getFile().getName().indexOf( "." ) )
+          :
+          localeFile.getFile().getName();
+        if ( filesWithLocaleFiles.contains( localeFile.getPath() + actualFileName ) ) {
+          continue;
+        }
+      }
+      proceed( importer, bundleBuilder, mimeType, localeFile );
+    }
+  }
+
+  protected void proceed( IPlatformImporter importer, RepositoryFileImportBundle.Builder bundleBuilder, String mimeType,
+                          LocaleFileDescriptor localeFile ) throws PlatformImportException {
+    bundleBuilder.name( localeFile.getName() );
+    bundleBuilder.comment( localeFile.getDescription() );
+    bundleBuilder.path( localeFile.getPath() );
+    bundleBuilder.file( localeFile.getFile() );
+    bundleBuilder.input( localeFile.getInputStream() );
+    bundleBuilder.mime( mimeType );
+    IPlatformImportBundle platformImportBundle = bundleBuilder.build();
+    importer.importFile( platformImportBundle );
   }
 }

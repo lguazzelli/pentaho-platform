@@ -12,7 +12,7 @@
 * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 * See the GNU Lesser General Public License for more details.
 *
-* Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+* Copyright (c) 2002-2017 Hitachi Vantara..  All rights reserved.
 */
 
 // used in getParameters and doClearIgnoreFields to ignore specific hidden fields
@@ -194,7 +194,7 @@ function doClearIgnoreFields(form1, form2) {
 	}
 }
 			
-/* this is an almost exact copy of ScheduleParamsWizardPanel.java getParams() in pentaho-gwt-widgets */
+/* this is an almost exact copy of ScheduleParamsWizardPanel.java getParams() in commons-gwt-widgets */
 function getParamEntries(params) {
     var paramEntries = new Array();
     for (var key in params) {

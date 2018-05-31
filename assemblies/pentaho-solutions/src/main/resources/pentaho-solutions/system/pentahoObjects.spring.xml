@@ -78,7 +78,7 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     <property name="nonPooledDatasourceService" ref="nonPooledOrJndiDatasourceService" />
   </bean>
   
-  <bean id="IPasswordService" class="org.pentaho.platform.util.Base64PasswordService" scope="singleton"/>
+  <bean id="IPasswordService" class="org.pentaho.platform.util.KettlePasswordService" scope="singleton"/>
   <bean id="IPluginProvider" class="org.pentaho.platform.plugin.services.pluginmgr.SystemPathXmlPluginProvider"
         scope="singleton"/>
 
@@ -314,7 +314,6 @@ not directly from the PentahoObjectFactory. -->
     <pen:publish as-type="ALL"/>
     <constructor-arg index="0" type="java.util.Map">
       <map key-type="java.lang.String" value-type="java.lang.String">
-        <entry key="mondrian4" value="mondrian"/>
         <entry key="mondrian" value="none"/>
       </map>
     </constructor-arg>

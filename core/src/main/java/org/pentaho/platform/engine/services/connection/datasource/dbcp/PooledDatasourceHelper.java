@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2017 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.engine.services.connection.datasource.dbcp;
@@ -25,6 +27,7 @@ import org.apache.commons.dbcp.ConnectionFactory;
 import org.apache.commons.dbcp.DriverManagerConnectionFactory;
 import org.apache.commons.dbcp.PoolableConnectionFactory;
 import org.apache.commons.dbcp.PoolingDataSource;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.pool.KeyedObjectPoolFactory;
@@ -215,17 +218,7 @@ public class PooledDatasourceHelper {
        * ConnectionFactory creates connections on behalf of the pool. Here, we use the DriverManagerConnectionFactory
        * because that essentially uses DriverManager as the source of connections.
        */
-      ConnectionFactory factory = null;
-      if ( url.startsWith( "jdbc:mysql:" ) || ( url.startsWith( "jdbc:mariadb:" ) ) ) {
-        Properties props = new Properties();
-        props.put( "user", databaseConnection.getUsername() );
-        props.put( "password", databaseConnection.getPassword() );
-        props.put( "socketTimeout", "0" );
-        props.put( "connectTimeout", "5000" );
-        factory = new DriverManagerConnectionFactory( url, props );
-      } else {
-        factory = new DriverManagerConnectionFactory( url, databaseConnection.getUsername(), databaseConnection.getPassword() );
-      }
+      ConnectionFactory factory = getConnectionFactory( databaseConnection, url );
 
       boolean defaultReadOnly =
           attributes.containsKey( IDBDatasourceService.DEFAULT_READ_ONLY ) ? Boolean.parseBoolean( attributes
@@ -318,6 +311,17 @@ public class PooledDatasourceHelper {
     } catch ( Exception e ) {
       throw new DBDatasourceServiceException( e );
     }
+  }
+
+  protected static ConnectionFactory getConnectionFactory( IDatabaseConnection databaseConnection, String url ) {
+    Properties props = new Properties();
+    props.put( "user", StringEscapeUtils.unescapeHtml( databaseConnection.getUsername() ) );
+    props.put( "password", StringEscapeUtils.unescapeHtml( databaseConnection.getPassword() ) );
+
+    if ( url.startsWith( "jdbc:mysql:" ) || ( url.startsWith( "jdbc:mariadb:" ) ) ) {
+      props.put( "connectTimeout", "5000" );
+    }
+    return new DriverManagerConnectionFactory( url, props );
   }
 
   public static DataSource convert( IDatabaseConnection databaseConnection ) throws DBDatasourceServiceException {

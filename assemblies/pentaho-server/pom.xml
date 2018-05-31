@@ -5,15 +5,15 @@
   <parent>
     <groupId>pentaho</groupId>
     <artifactId>pentaho-platform-assemblies</artifactId>
-    <version>8.0-SNAPSHOT</version>
+    <version>9.0.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>pentaho-server-ce</artifactId>
-  <version>8.0-SNAPSHOT</version>
+  <version>9.0.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <properties>
     <tomcat.directory>${project.build.directory}/apache-tomcat-${tomcat.version}</tomcat.directory>
     <replacer.version>1.5.2</replacer.version>
-    <tomcat.version>8.0.43</tomcat.version>
+    <tomcat.version>8.5.27</tomcat.version>
     <wkhtmltox.version>0.10.0_rc2</wkhtmltox.version>
     <wkhtmltoimage.version>${wkhtmltox.version}-static</wkhtmltoimage.version>
     <resources.directory>${basedir}/src/main/resources</resources.directory>
@@ -119,6 +119,11 @@
           <groupId>*</groupId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>apache-log4j-extras</artifactId>
+      <version>${apache-log4j-extras}</version>
     </dependency>
   </dependencies>
   <build>

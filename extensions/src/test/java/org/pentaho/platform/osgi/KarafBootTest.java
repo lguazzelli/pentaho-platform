@@ -1,21 +1,20 @@
-/*
- * ******************************************************************************
+/*!
  *
- * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
+ * This program is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
+ * Foundation.
  *
- * ******************************************************************************
+ * You should have received a copy of the GNU Lesser General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+ * or from the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Lesser General Public License for more details.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
  *
  */
 
@@ -45,13 +44,19 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.util.Locale;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * Created by rfellows on 10/23/15.
@@ -74,7 +79,7 @@ public class KarafBootTest {
     props.setProperty( Constants.FRAMEWORK_BEGINNING_STARTLEVEL, "100" );
     props.setProperty( "karaf.framework", "felix" );
 
-    Path karafBootTest = Files.createTempDirectory( "KarafBootTest", new FileAttribute[ 0 ] );
+    Path karafBootTest = Files.createTempDirectory( Paths.get( "." ), "KarafBootTest", new FileAttribute[ 0 ] );
     tmpDir = karafBootTest.toFile();
     configProps = new File( tmpDir, "system/karaf/etc/config.properties" );
     configProps.getParentFile().mkdirs();
@@ -88,7 +93,7 @@ public class KarafBootTest {
   @AfterClass
   public static void cleanUp() throws IOException {
     if ( tmpDir.exists() ) {
-      tmpDir.deleteOnExit();
+      FileUtils.deleteDirectory( tmpDir );
     }
   }
 
@@ -123,7 +128,7 @@ public class KarafBootTest {
       boolean startup = karafBoot.startup( session );
       // can't see if it started since we aren't actually starting up karaf, return value will be false
       assertFalse( startup );
-      assertEquals( tmpDir, new File( System.getProperty( "karaf.home" ) ).getParentFile().getParentFile() );
+      assertEquals( tmpDir.getAbsolutePath(), new File( System.getProperty( "karaf.home" ) ).getParentFile().getParentFile().getAbsolutePath() );
     } finally {
       if ( origKarafHome == null ) {
         System.getProperties().remove( "karaf.home" );
@@ -167,7 +172,7 @@ public class KarafBootTest {
   @Test
   public void testStartupSetKarafDestFolder() throws Exception {
     String origKarafHome = System.getProperty( "karaf.home" );
-    File tempDirectory = Files.createTempDirectory( "test" ).toFile();
+    File tempDirectory = Files.createTempDirectory( Paths.get( "." ), "test" ).toFile();
     tempDirectory.delete();
     try {
       System.getProperties().remove( "karaf.home" );
@@ -186,7 +191,7 @@ public class KarafBootTest {
       File karafHome = new File( System.getProperty( "karaf.home" ) );
 
       try {
-        assertEquals( tempDirectory, karafHome );
+        assertEquals( tempDirectory.getCanonicalFile(), karafHome.getCanonicalFile() ); // Wasn't working in Windows with ~1 file names
       } catch ( AssertionError ae ) {
         // don't throw an assertion error just yet; OSX likes to add its own files/folders into
         // a folder ( think .DS_Store file or .Trash folder ), and also has its saying on the
@@ -215,7 +220,7 @@ public class KarafBootTest {
   @Test
   public void testStartupSetKarafDestFolderTransient() throws Exception {
     String origKarafHome = System.getProperty( "karaf.home" );
-    File tempDirectory = Files.createTempDirectory( "test" ).toFile();
+    File tempDirectory = Files.createTempDirectory( Paths.get( "." ), "test" ).toFile();
     try {
       System.getProperties().remove( "karaf.home" );
       System.setProperty( KarafBoot.PENTAHO_KARAF_ROOT_COPY_DEST_FOLDER, tempDirectory.getAbsolutePath() );
@@ -232,7 +237,7 @@ public class KarafBootTest {
       // can't see if it started since we aren't actually starting up karaf, return value will be false
       assertFalse( startup );
       File karafHome = new File( System.getProperty( "karaf.home" ) );
-      assertEquals( tempDirectory.getParent(), karafHome.getParent() );
+      assertEquals( tempDirectory.getAbsoluteFile().getParent(), karafHome.getAbsoluteFile().getParent() );
       assertTrue( karafHome.getName().startsWith( tempDirectory.getName() ) );
       assertTrue( new File( karafHome, "system" ).exists() );
       assertFalse( new File( karafHome, "caches" ).exists() );
@@ -326,7 +331,7 @@ public class KarafBootTest {
     //set property
     KarafBoot karafBoot = new KarafBoot();
 
-    File root = Files.createTempDirectory( "root" ).toFile();
+    File root = Files.createTempDirectory( Paths.get( "." ), "root" ).toFile();
     File caches = new File( root, "caches" );
     caches.mkdir();
     for ( int i = 0; i < 5; i++ ) {
@@ -339,22 +344,41 @@ public class KarafBootTest {
 
     FileUtils.copyDirectory( new File( TestResourceLocation.TEST_RESOURCES + "/karafBootTest/system/karaf/etc" ), new File( root, "etc" ) );
 
-    Properties config = new Properties();
-    File configFile = new File( root +  "/etc/custom.properties" );
-    config.load( new FileInputStream( configFile ) );
-    config.setProperty( "org.pentaho.clean.karaf.cache", "true" );
-    config.store( new FileOutputStream( configFile ), "setting stage" );
+    FileOutputStream fileOutputStream = null;
+    FileInputStream fileInputStream = null;
+    try {
+      Properties config = new Properties();
+      File configFile = new File( root + "/etc/custom.properties" );
+      fileInputStream = new FileInputStream( configFile );
+      config.load( fileInputStream );
+      fileInputStream.close();
+      config.setProperty( "org.pentaho.clean.karaf.cache", "true" );
+      fileOutputStream = new FileOutputStream( configFile );
+      config.store( fileOutputStream, "setting stage" );
 
-    karafBoot.cleanCachesIfFlagSet( root.getPath() );
-    // Check that all data directories are gone
-    for ( int i = 0; i < 5; i++ ) {
-      File clientTypeFolder = new File( caches, "client" + i );
-      File[] files = clientTypeFolder.listFiles();
-      assertEquals( 0, files.length );
+      karafBoot.cleanCachesIfFlagSet( root.getPath() );
+      // Check that all data directories are gone
+      for ( int i = 0; i < 5; i++ ) {
+        File clientTypeFolder = new File( caches, "client" + i );
+        File[] files = clientTypeFolder.listFiles();
+        assertEquals( 0, files.length );
+      }
+
+      fileInputStream = new FileInputStream( configFile );
+      config.load( fileInputStream );
+      assertEquals( "false", config.getProperty( "org.pentaho.clean.karaf.cache" ) );
+    } finally {
+      if ( fileOutputStream != null ) {
+        fileOutputStream.close();
+      }
+      if ( fileInputStream != null ) {
+        fileInputStream.close();
+      }
     }
 
-    config.load( new FileInputStream( configFile ) );
-    assertEquals( "false", config.getProperty( "org.pentaho.clean.karaf.cache" ) );
+    if ( root.exists() ) {
+      FileUtils.deleteDirectory( root );
+    }
 
   }
 

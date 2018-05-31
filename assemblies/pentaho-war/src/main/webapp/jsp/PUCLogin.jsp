@@ -12,7 +12,7 @@
 * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 * See the GNU Lesser General Public License for more details.
 *
-* Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+* Copyright (c) 2002-2017 Hitachi Vantara..  All rights reserved.
 --%>
 
 <%@ taglib prefix='c' uri='http://java.sun.com/jstl/core'%>
@@ -154,7 +154,11 @@
 %>
 
 <meta name="gwt:property" content="locale=<%=Encode.forHtmlAttribute(request.getLocale().toString())%>">
-<link rel="shortcut icon" href="/pentaho-style/favicon.ico" />
+<link rel="icon" href="/pentaho-style/favicon.ico"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/pentaho-style/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/pentaho-style/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/pentaho-style/favicon-16x16.png">
+<link rel="mask-icon" href="/pentaho-style/safari-pinned-tab.svg" color="#cc0000">
 
 <style type="text/css">
   #login-background,
@@ -179,6 +183,12 @@
 <div id="login-wrapper">
   <div id="login-background">
     <div id="login-logo"></div>
+	
+	<script type="text/javascript">
+      if (window.active_theme === 'ruby') {
+		document.write('<div id="login-title"><%=Messages.getInstance().getString("UI.PUC.LOGIN.HEADER")%></div>');
+	  }	  
+	</script>
 
 <% 
 		String cleanedLang = Encode.forHtmlAttribute(request.getLocale().toString());

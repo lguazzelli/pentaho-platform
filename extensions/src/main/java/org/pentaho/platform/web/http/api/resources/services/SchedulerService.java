@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,19 +13,12 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2017 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.http.api.resources.services;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
@@ -34,6 +28,7 @@ import org.pentaho.platform.api.action.IAction;
 import org.pentaho.platform.api.engine.IAuthorizationPolicy;
 import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.engine.ISecurityHelper;
+import org.pentaho.platform.api.engine.ServiceException;
 import org.pentaho.platform.api.repository2.unified.IUnifiedRepository;
 import org.pentaho.platform.api.repository2.unified.RepositoryFile;
 import org.pentaho.platform.api.repository2.unified.UnifiedRepositoryException;
@@ -47,12 +42,12 @@ import org.pentaho.platform.api.scheduler2.SchedulerException;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.engine.security.SecurityHelper;
-import org.pentaho.platform.repository.RepositoryFilenameUtils;
 import org.pentaho.platform.repository2.unified.webservices.RepositoryFileDto;
 import org.pentaho.platform.scheduler2.blockout.BlockoutAction;
 import org.pentaho.platform.scheduler2.quartz.QuartzScheduler;
 import org.pentaho.platform.security.policy.rolebased.actions.AdministerSecurityAction;
 import org.pentaho.platform.security.policy.rolebased.actions.SchedulerAction;
+import org.pentaho.platform.util.ActionUtil;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.platform.web.http.api.resources.ComplexJobTriggerProxy;
 import org.pentaho.platform.web.http.api.resources.JobRequest;
@@ -63,6 +58,15 @@ import org.pentaho.platform.web.http.api.resources.SchedulerOutputPathResolver;
 import org.pentaho.platform.web.http.api.resources.SchedulerResourceUtil;
 import org.pentaho.platform.web.http.api.resources.SessionResource;
 import org.pentaho.platform.web.http.api.resources.proxies.BlockStatusProxy;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SchedulerService {
 
@@ -85,8 +89,8 @@ public class SchedulerService {
 
     // Used to determine if created by a RunInBackgroundCommand
     boolean runInBackground =
-        scheduleRequest.getSimpleJobTrigger() == null && scheduleRequest.getComplexJobTrigger() == null
-            && scheduleRequest.getCronJobTrigger() == null;
+      scheduleRequest.getSimpleJobTrigger() == null && scheduleRequest.getComplexJobTrigger() == null
+        && scheduleRequest.getCronJobTrigger() == null;
 
     if ( !runInBackground && !getPolicy().isAllowed( SchedulerAction.NAME ) ) {
       throw new SecurityException();
@@ -108,7 +112,7 @@ public class SchedulerService {
       scheduleRequest.setJobName( file.getName().substring( 0, file.getName().lastIndexOf( "." ) ) ); //$NON-NLS-1$
     } else if ( !StringUtils.isEmpty( scheduleRequest.getActionClass() ) ) {
       String actionClass =
-          scheduleRequest.getActionClass().substring( scheduleRequest.getActionClass().lastIndexOf( "." ) + 1 );
+        scheduleRequest.getActionClass().substring( scheduleRequest.getActionClass().lastIndexOf( "." ) + 1 );
       scheduleRequest.setJobName( actionClass ); //$NON-NLS-1$
     } else if ( !hasInputFile && StringUtils.isEmpty( scheduleRequest.getJobName() ) ) {
       // just make up a name
@@ -116,6 +120,10 @@ public class SchedulerService {
     }
 
     if ( hasInputFile ) {
+      if ( file == null ) {
+        logger.error( "Cannot find input source file " + scheduleRequest.getInputFile() + " Aborting schedule..." );
+        throw new SchedulerException( new ServiceException( "Cannot find input source file " + scheduleRequest.getInputFile() ) );
+      }
       Map<String, Serializable> metadata = getRepository().getFileMetadata( file.getId() );
       if ( metadata.containsKey( RepositoryFile.SCHEDULABLE_KEY ) ) {
         boolean schedulable = BooleanUtils.toBoolean( (String) metadata.get( RepositoryFile.SCHEDULABLE_KEY ) );
@@ -125,11 +133,16 @@ public class SchedulerService {
       }
     }
 
+    if ( scheduleRequest.getTimeZone() != null ) {
+      updateStartDateForTimeZone( scheduleRequest );
+    }
+
     Job job = null;
 
     IJobTrigger jobTrigger = SchedulerResourceUtil.convertScheduleRequestToJobTrigger( scheduleRequest, scheduler );
 
-    HashMap<String, Serializable> parameterMap = new HashMap<String, Serializable>();
+    HashMap<String, Serializable> parameterMap = new HashMap<>();
+
     for ( JobScheduleParam param : scheduleRequest.getJobParameters() ) {
       parameterMap.put( param.getName(), param.getValue() );
     }
@@ -143,19 +156,19 @@ public class SchedulerService {
     if ( hasInputFile ) {
       SchedulerOutputPathResolver outputPathResolver = getSchedulerOutputPathResolver( scheduleRequest );
       String outputFile = outputPathResolver.resolveOutputFilePath();
-      String actionId =
-          getExtension( scheduleRequest.getInputFile() )
-              + ".backgroundExecution"; //$NON-NLS-1$ //$NON-NLS-2$
+      String actionId = SchedulerResourceUtil.resolveActionId( scheduleRequest.getInputFile() );
+      final String inputFile = scheduleRequest.getInputFile();
+      parameterMap.put( ActionUtil.QUARTZ_STREAMPROVIDER_INPUT_FILE,  inputFile );
       job =
-          getScheduler().createJob( scheduleRequest.getJobName(), actionId, parameterMap, jobTrigger,
-              new RepositoryFileStreamProvider( scheduleRequest.getInputFile(), outputFile,
-                  getAutoCreateUniqueFilename( scheduleRequest ) )
+        getScheduler().createJob( scheduleRequest.getJobName(), actionId, parameterMap, jobTrigger,
+          new RepositoryFileStreamProvider( inputFile, outputFile,
+            getAutoCreateUniqueFilename( scheduleRequest ), getAppendDateFormat( scheduleRequest ) )
         );
     } else {
       // need to locate actions from plugins if done this way too (but for now, we're just on main)
       String actionClass = scheduleRequest.getActionClass();
       try {
-        @SuppressWarnings ( "unchecked" )
+        @SuppressWarnings( "unchecked" )
         Class<IAction> iaction = getAction( actionClass );
         job = getScheduler().createJob( scheduleRequest.getJobName(), iaction, parameterMap, jobTrigger );
       } catch ( ClassNotFoundException e ) {
@@ -215,7 +228,7 @@ public class SchedulerService {
    */
   public List<RepositoryFileDto> doGetGeneratedContentForSchedule( String lineageId ) throws FileNotFoundException {
     return getFileService().searchGeneratedContent( getSessionResource().doGetCurrentUserDir(), lineageId,
-        QuartzScheduler.RESERVEDMAPKEY_LINEAGE_ID );
+      QuartzScheduler.RESERVEDMAPKEY_LINEAGE_ID );
   }
 
   public Job getJob( String jobId ) throws SchedulerException {
@@ -258,7 +271,7 @@ public class SchedulerService {
         return true;
       }
       return principalName.equals( job.getUserName() )
-          && "org.pentaho.platform.admin.GeneratedContentCleaner".equals( actionClass );
+        && "org.pentaho.platform.admin.GeneratedContentCleaner".equals( actionClass );
     }
   }
 
@@ -328,10 +341,10 @@ public class SchedulerService {
       for ( String key : job.getJobParams().keySet() ) {
         Serializable value = job.getJobParams().get( key );
         if ( value != null && value.getClass() != null && value.getClass().isArray() ) {
-          String[] sa = ( new String[0] ).getClass().cast( value );
-          ArrayList<String> list = new ArrayList<String>();
+          String[] sa = ( new String[ 0 ] ).getClass().cast( value );
+          ArrayList<String> list = new ArrayList<>();
           for ( int i = 0; i < sa.length; i++ ) {
-            list.add( sa[i] );
+            list.add( sa[ i ] );
           }
           job.getJobParams().put( key, list );
         }
@@ -359,13 +372,14 @@ public class SchedulerService {
     return getBlockoutManager().shouldFireNow();
   }
 
-  public Job addBlockout( JobScheduleRequest jobScheduleRequest ) throws IOException, IllegalAccessException, SchedulerException {
-    if ( isScheduleAllowed() ) {
+  public Job addBlockout( JobScheduleRequest jobScheduleRequest )
+    throws IOException, IllegalAccessException, SchedulerException {
+    if ( canAdminister() ) {
       jobScheduleRequest.setActionClass( BlockoutAction.class.getCanonicalName() );
       jobScheduleRequest.getJobParameters().add( getJobScheduleParam( IBlockoutManager.DURATION_PARAM,
-          jobScheduleRequest.getDuration() ) );
-      jobScheduleRequest.getJobParameters().add( getJobScheduleParam( IBlockoutManager.TIME_ZONE_PARAM, jobScheduleRequest.getTimeZone() ) );
-      updateStartDateForTimeZone( jobScheduleRequest );
+        jobScheduleRequest.getDuration() ) );
+      jobScheduleRequest.getJobParameters()
+        .add( getJobScheduleParam( IBlockoutManager.TIME_ZONE_PARAM, jobScheduleRequest.getTimeZone() ) );
       return createJob( jobScheduleRequest );
     }
     throw new IllegalAccessException();
@@ -385,14 +399,14 @@ public class SchedulerService {
 
   public Job updateBlockout( String jobId, JobScheduleRequest jobScheduleRequest )
     throws IllegalAccessException, SchedulerException, IOException {
-    if ( isScheduleAllowed() ) {
+    if ( canAdminister() ) {
       boolean isJobRemoved = removeJob( jobId );
       if ( isJobRemoved ) {
         Job job = addBlockout( jobScheduleRequest );
         return job;
       }
     }
-    throw new IllegalArgumentException();
+    throw new IllegalAccessException();
   }
 
   public BlockStatusProxy getBlockStatus( JobScheduleRequest jobScheduleRequest ) throws SchedulerException {
@@ -418,15 +432,15 @@ public class SchedulerService {
   public JobScheduleRequest getJobInfo() {
     JobScheduleRequest jobRequest = new JobScheduleRequest();
     ComplexJobTriggerProxy proxyTrigger = new ComplexJobTriggerProxy();
-    proxyTrigger.setDaysOfMonth( new int[]{1, 2, 3} );
-    proxyTrigger.setDaysOfWeek( new int[]{1, 2, 3} );
-    proxyTrigger.setMonthsOfYear( new int[]{1, 2, 3} );
-    proxyTrigger.setYears( new int[]{2012, 2013} );
+    proxyTrigger.setDaysOfMonth( new int[] { 1, 2, 3 } );
+    proxyTrigger.setDaysOfWeek( new int[] { 1, 2, 3 } );
+    proxyTrigger.setMonthsOfYear( new int[] { 1, 2, 3 } );
+    proxyTrigger.setYears( new int[] { 2012, 2013 } );
     proxyTrigger.setStartTime( new Date() );
     jobRequest.setComplexJobTrigger( proxyTrigger );
     jobRequest.setInputFile( "aaaaa" );
     jobRequest.setOutputFile( "bbbbb" );
-    ArrayList<JobScheduleParam> jobParams = new ArrayList<JobScheduleParam>();
+    ArrayList<JobScheduleParam> jobParams = new ArrayList<>();
     jobParams.add( new JobScheduleParam( "param1", "aString" ) );
     jobParams.add( new JobScheduleParam( "param2", 1 ) );
     jobParams.add( new JobScheduleParam( "param3", true ) );
@@ -484,18 +498,31 @@ public class SchedulerService {
   }
 
   protected HashMap<String, Serializable> handlePDIScheduling( RepositoryFile file,
-                                                               HashMap<String, Serializable> parameterMap, Map<String, String> pdiParameters ) {
+                                                               HashMap<String, Serializable> parameterMap,
+                                                               Map<String, String> pdiParameters ) {
     return SchedulerResourceUtil.handlePDIScheduling( file, parameterMap, pdiParameters );
   }
 
   public boolean getAutoCreateUniqueFilename( final JobScheduleRequest scheduleRequest ) {
     ArrayList<JobScheduleParam> jobParameters = scheduleRequest.getJobParameters();
     for ( JobScheduleParam jobParameter : jobParameters ) {
-      if ( "autoCreateUniqueFilename".equals( jobParameter.getName() ) && "boolean".equals( jobParameter.getType() ) ) {
+      if ( QuartzScheduler.RESERVEDMAPKEY_AUTO_CREATE_UNIQUE_FILENAME.equals( jobParameter.getName() ) && "boolean"
+        .equals( jobParameter.getType() ) ) {
         return (Boolean) jobParameter.getValue();
       }
     }
     return true;
+  }
+
+  public String getAppendDateFormat( final JobScheduleRequest scheduleRequest ) {
+    ArrayList<JobScheduleParam> jobParameters = scheduleRequest.getJobParameters();
+    for ( JobScheduleParam jobParameter : jobParameters ) {
+      if ( QuartzScheduler.RESERVEDMAPKEY_APPEND_DATE_FORMAT.equals( jobParameter.getName() ) && "string"
+        .equals( jobParameter.getType() ) ) {
+        return (String) jobParameter.getValue();
+      }
+    }
+    return null;
   }
 
   public List<Job> getJobs() throws SchedulerException {
@@ -527,8 +554,12 @@ public class SchedulerService {
     return false;
   }
 
+  protected String resolveActionId( final String inputFile ) {
+    return SchedulerResourceUtil.resolveActionId( inputFile );
+  }
+
   protected String getExtension( String filename ) {
-    return RepositoryFilenameUtils.getExtension( filename );
+    return SchedulerResourceUtil.getExtension( filename );
   }
 
   /**

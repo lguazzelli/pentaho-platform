@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.test.platform.plugin.pluginmgr;
@@ -22,7 +25,6 @@ import org.junit.Test;
 import org.pentaho.platform.api.engine.IComponent;
 import org.pentaho.platform.api.engine.IContentGenerator;
 import org.pentaho.platform.api.engine.IContentInfo;
-import org.pentaho.platform.api.engine.IFileInfo;
 import org.pentaho.platform.api.engine.IPentahoDefinableObjectFactory.Scope;
 import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.engine.IPlatformPlugin;
@@ -33,17 +35,14 @@ import org.pentaho.platform.api.engine.IPluginProvider;
 import org.pentaho.platform.api.engine.IServiceConfig;
 import org.pentaho.platform.api.engine.IServiceManager;
 import org.pentaho.platform.api.engine.ISolutionEngine;
-import org.pentaho.platform.api.engine.ISolutionFile;
 import org.pentaho.platform.api.engine.ObjectFactoryException;
 import org.pentaho.platform.api.engine.PlatformPluginRegistrationException;
 import org.pentaho.platform.api.engine.PluginBeanDefinition;
 import org.pentaho.platform.api.engine.PluginBeanException;
 import org.pentaho.platform.api.engine.PluginServiceDefinition;
-import org.pentaho.platform.api.engine.SolutionFileMetaAdapter;
 import org.pentaho.platform.api.repository2.unified.IUnifiedRepository;
 import org.pentaho.platform.engine.core.solution.ContentGeneratorInfo;
 import org.pentaho.platform.engine.core.solution.ContentInfo;
-import org.pentaho.platform.engine.core.solution.FileInfo;
 import org.pentaho.platform.engine.core.solution.PluginOperation;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.engine.core.system.StandaloneSession;
@@ -67,13 +66,17 @@ import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 
 import java.io.File;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 
 @SuppressWarnings( "nls" )
 public class DefaultPluginManagerIT {
@@ -236,7 +239,7 @@ public class DefaultPluginManagerIT {
     try {
       assertNotNull( pluginManager.getBean( "TestDefaultClassNotFoundComponent" ) );
       fail( "We should have gotten a PluginBeanException for the TestDefaultClassNotFoundComponent plugin" );
-    } catch( Exception ex ) {
+    } catch ( Exception ex ) {
       assertTrue( ex instanceof PluginBeanException );
     }
   }
@@ -712,8 +715,6 @@ public class DefaultPluginManagerIT {
       // //////////////////
       // For 10b only
       //
-      p.getMetaProviderMap().put( "test10type1-ext", Tst10bMetaProvider.class.getName() );
-
       ContentGeneratorInfo cg1 = new ContentGeneratorInfo();
       cg1.setDescription( "test 10b plugin description" );
       cg1.setId( "test10type1-ext" ); // setting to same string as extension to verify that names do not collide causing
@@ -727,16 +728,6 @@ public class DefaultPluginManagerIT {
       // //////////////////
 
       return Arrays.asList( (IPlatformPlugin) p );
-    }
-  }
-
-  public static class Tst10bMetaProvider extends SolutionFileMetaAdapter {
-    public IFileInfo getFileInfo( ISolutionFile solutionFile, InputStream in ) {
-      FileInfo fileInfo = new FileInfo();
-      fileInfo.setTitle( "test10b-title" );
-      fileInfo.setAuthor( "test10b-author" );
-      fileInfo.setDescription( "test10b-description" );
-      return fileInfo;
     }
   }
 

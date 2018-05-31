@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,13 +13,16 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.http.api.resources.services;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -31,6 +35,7 @@ import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -40,6 +45,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -65,6 +71,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.invocation.InvocationOnMock;
@@ -85,8 +92,12 @@ import org.pentaho.platform.api.repository2.unified.RepositoryRequest;
 import org.pentaho.platform.api.repository2.unified.data.simple.SimpleRepositoryFileData;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
+import org.pentaho.platform.plugin.services.importer.IPlatformImporter;
+import org.pentaho.platform.plugin.services.importer.RepositoryFileImportBundle;
 import org.pentaho.platform.plugin.services.importexport.BaseExportProcessor;
 import org.pentaho.platform.plugin.services.importexport.ExportHandler;
+import org.pentaho.platform.plugin.services.importexport.IRepositoryImportLogger;
+import org.pentaho.platform.plugin.services.importexport.ImportSession;
 import org.pentaho.platform.repository.RepositoryDownloadWhitelist;
 import org.pentaho.platform.repository2.locale.PentahoLocale;
 import org.pentaho.platform.repository2.unified.fileio.RepositoryFileInputStream;
@@ -107,7 +118,11 @@ import org.pentaho.platform.web.http.api.resources.SessionResource;
 import org.pentaho.platform.web.http.api.resources.Setting;
 import org.pentaho.platform.web.http.api.resources.StringListWrapper;
 import org.pentaho.platform.web.http.api.resources.utils.FileUtils;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
+@RunWith( PowerMockRunner.class )
+@PrepareForTest( FileUtils.class )
 public class FileServiceTest {
 
   private static FileService fileService;
@@ -129,6 +144,8 @@ public class FileServiceTest {
   private IAuthorizationPolicy policy;
 
   private ITenantedPrincipleNameResolver resolver;
+
+  private IPlatformImporter platformImporter;
   @Before
   public void setUp() throws ObjectFactoryException {
     fileService = spy( new FileService() );
@@ -144,6 +161,7 @@ public class FileServiceTest {
     doReturn( REAL_USER ).when( resolver ).getPrincipleName( anyString() );
     policy = mock( IAuthorizationPolicy.class );
     pentahoObjectFactory = mock( IPentahoObjectFactory.class );
+    platformImporter = mock( IPlatformImporter.class );
     when( pentahoObjectFactory.objectDefined( anyString() ) ).thenReturn( true );
     when( pentahoObjectFactory.get( this.anyClass(), anyString(), any( IPentahoSession.class ) ) ).thenAnswer(
         new Answer<Object>() {
@@ -155,9 +173,11 @@ public class FileServiceTest {
             if ( invocation.getArguments()[0].equals( ITenantedPrincipleNameResolver.class ) ) {
               return resolver;
             }
+            if ( invocation.getArguments()[0].equals( IPlatformImporter.class ) ) {
+              return platformImporter;
+            }
             return null;
-          }
-        } );
+        } } );
     PentahoSystem.registerObjectFactory( pentahoObjectFactory );
     IPentahoSession session = mock( IPentahoSession.class );
     doReturn( "sampleSession" ).when( session ).getName();
@@ -589,6 +609,50 @@ public class FileServiceTest {
       verify( fileService.getRepoWs(), times( 1 ) ).moveFile( params[ 0 ], destPathId, null );
       verify( fileService.getRepoWs(), times( 0 ) ).moveFile( params[ 1 ], destPathId, null );
     }
+  }
+
+  @Test
+  public void testSystemRestore() throws Exception {
+    InputStream inputStreamMock = mock( InputStream.class );
+    IAuthorizationPolicy authorizationPolicy = mock( IAuthorizationPolicy.class );
+    IRepositoryImportLogger iRepositoryImportLogger = mock( IRepositoryImportLogger.class );
+    doReturn( authorizationPolicy ).when( fileService ).getPolicy();
+
+    doReturn( true ).when( authorizationPolicy ).isAllowed( RepositoryReadAction.NAME );
+    doReturn( true ).when( authorizationPolicy ).isAllowed( RepositoryCreateAction.NAME );
+    doReturn( true ).when( authorizationPolicy ).isAllowed( AdministerSecurityAction.NAME );
+
+    doReturn( iRepositoryImportLogger ).when( platformImporter ).getRepositoryImportLogger();
+
+    fileService.systemRestore( inputStreamMock, "true", "false", "true" );
+
+    verify( fileService ).doCanAdminister();
+    verify( iRepositoryImportLogger ).startJob( any(), anyString(), any() );
+    verify( iRepositoryImportLogger ).endJob();
+
+    ArgumentCaptor<RepositoryFileImportBundle> argumentCaptor = ArgumentCaptor.forClass( RepositoryFileImportBundle.class );
+    verify( platformImporter ).importFile( argumentCaptor.capture() );
+
+    RepositoryFileImportBundle bundle = argumentCaptor.getValue();
+
+    assertTrue( bundle.getInputStream() == inputStreamMock );
+    assertEquals( "UTF-8", bundle.getCharSet() );
+    assertEquals( RepositoryFile.HIDDEN_BY_DEFAULT, bundle.isHidden() );
+    assertEquals( RepositoryFile.SCHEDULABLE_BY_DEFAULT, bundle.isSchedulable() );
+    assertEquals( "/", bundle.getPath() );
+    assertEquals( true, bundle.overwriteInRepository() );
+    assertEquals( "SystemBackup.zip", bundle.getName() );
+    assertFalse( bundle.isApplyAclSettings() );
+    assertTrue( bundle.isRetainOwnership() );
+    assertTrue( bundle.isOverwriteAclSettings() );
+    assertTrue( bundle.isPreserveDsw() );
+
+    ImportSession session = ImportSession.getSession();
+
+    assertFalse( session.isApplyAclSettings() );
+    assertTrue( session.isRetainOwnership() );
+    assertTrue( session.isOverwriteAclSettings() );
+
   }
 
   @Test
@@ -1932,6 +1996,7 @@ public class FileServiceTest {
     verify( fileService ).addAdminRole( fileAcl );
   }
 
+  @Test
   public void testDoGetTree() {
     String pathId = ":path:to:file:file1.ext";
     int depth = 1;
@@ -1976,7 +2041,7 @@ public class FileServiceTest {
     verify( mockRequest, times( 1 ) ).setIncludeAcls( anyBoolean() );
     verify( mockCollator, times( 1 ) ).setStrength( Collator.PRIMARY );
     verify( fileService, times( 1 ) ).sortByLocaleTitle( mockCollator, mockTreeDto );
-    verify( mockTreeDto ).setChildren( mockChildrenDto );
+    //verify( mockTreeDto ).setChildren( mockChildrenDto );
 
     // Test 2 - path id is null
     pathId = null;
@@ -1991,6 +2056,10 @@ public class FileServiceTest {
 
     verify( fileService, times( 2 ) )
       .getRepositoryRequest( eq( FileUtils.PATH_SEPARATOR ), anyBoolean(), anyInt(), anyString() );
+
+    // Test 3 - includeSystemFolders is false
+    mockRequest.setIncludeSystemFolders( false );
+    doReturn( mockTreeDto ).when( fileService.defaultUnifiedRepositoryWebService ).getTreeFromRequest( mockRequest );
   }
 
   @Test
@@ -2114,6 +2183,68 @@ public class FileServiceTest {
       assertEquals( e.getMessage(), "negativetest" );
     }
   }
+
+  @Test
+  public void testValidFolderName() throws FileService.InvalidNameException {
+    FileService fs = mock( FileService.class );
+    doCallRealMethod().when( fs ).doCreateDirSafe( anyString() );
+    doCallRealMethod().when( fs ).decode( anyString() );
+    doReturn( "New Folder" ).when( fs ).idToPath( anyString() );
+    doReturn( true ).when( fs ).doCreateDirFor( "New Folder" );
+
+    StringBuffer sb = new StringBuffer( "!" );
+    doReturn( sb ).when( fs ).doGetReservedChars();
+
+    mockStatic( FileUtils.class );
+    when( FileUtils.containsReservedCharacter( anyString(), any() ) ).thenReturn( false );
+
+    assertTrue( fs.doCreateDirSafe( "New Folder" ) );
+  }
+
+  @Test
+  public void testInvalidValidFolderNameWithDot() throws FileService.InvalidNameException {
+    FileService fs = mock( FileService.class );
+    doCallRealMethod().when( fs ).doCreateDirSafe( anyString() );
+    doCallRealMethod().when( fs ).decode( anyString() );
+    doReturn( "." ).when( fs ).idToPath( anyString() );
+    doReturn( true ).when( fs ).doCreateDirFor( "." );
+
+    StringBuffer sb = new StringBuffer( "!" );
+    doReturn( sb ).when( fs ).doGetReservedChars();
+
+    mockStatic( FileUtils.class );
+    when( FileUtils.containsReservedCharacter( anyString(), any() ) ).thenReturn( false );
+
+    try {
+      fs.doCreateDirSafe( "." );
+      fail();
+    } catch ( FileService.InvalidNameException e ) {
+      assertNotNull( e );
+    }
+  }
+
+  @Test
+  public void testInvalidValidFolderNameWithEncodedDot() throws FileService.InvalidNameException {
+    FileService fs = mock( FileService.class );
+    doCallRealMethod().when( fs ).doCreateDirSafe( anyString() );
+    doCallRealMethod().when( fs ).decode( anyString() );
+    doReturn( "%2E" ).when( fs ).idToPath( anyString() );
+    doReturn( true ).when( fs ).doCreateDirFor( "%2E" );
+
+    StringBuffer sb = new StringBuffer( "!" );
+    doReturn( sb ).when( fs ).doGetReservedChars();
+
+    mockStatic( FileUtils.class );
+    when( FileUtils.containsReservedCharacter( anyString(), any() ) ).thenReturn( false );
+
+    try {
+      fs.doCreateDirSafe( "%2E" );
+      fail();
+    } catch ( FileService.InvalidNameException e ) {
+      assertNotNull( e );
+    }
+  }
+
   private Class<?> anyClass() {
     return argThat( new AnyClassMatcher() );
   }

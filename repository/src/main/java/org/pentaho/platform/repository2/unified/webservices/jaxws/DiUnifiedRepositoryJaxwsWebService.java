@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,15 +14,19 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.repository2.unified.webservices.jaxws;
+
+import java.util.List;
 
 import javax.jws.WebService;
 
 import org.pentaho.platform.api.engine.IAuthorizationPolicy;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
+import org.pentaho.platform.repository2.unified.webservices.RepositoryFileDto;
 import org.pentaho.platform.security.policy.rolebased.actions.RepositoryReadAction;
 
 
@@ -42,5 +47,10 @@ public class DiUnifiedRepositoryJaxwsWebService extends DefaultUnifiedRepository
   @Override
   protected void validateEtcWriteAccess( String parentFolderId ) {
     // Noop to allow write access in DI Server
+  }
+
+  @Override
+  public List<RepositoryFileDto> getDeletedFiles() {
+    return marshalFiles( repo.getAllDeletedFiles() );
   }
 }

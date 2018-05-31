@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2017 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.http.filters;
@@ -88,7 +91,7 @@ public class HttpSessionPentahoSessionIntegrationFilterTest {
   }
 
   @Test
-  public void testSessionCookieCASEnabled() throws ObjectFactoryException {
+  public void testSessionCookieSsoEnabled() throws ObjectFactoryException {
 
     final ISystemSettings systemSettings = PentahoSystem.getSystemSettings();
     try {
@@ -97,8 +100,9 @@ public class HttpSessionPentahoSessionIntegrationFilterTest {
       PentahoSystem.setSystemSettingsService( mockSettings );
       final CasAuthenticationProvider mockObj = Mockito.mock( CasAuthenticationProvider.class );
       PentahoSystem.registerObject( mockObj, AuthenticationProvider.class );
-      new HttpSessionPentahoSessionIntegrationFilter()
-        .setSessionExpirationCookies( httpSession, pentahoSession, servletResponse );
+      HttpSessionPentahoSessionIntegrationFilter hspsif = new HttpSessionPentahoSessionIntegrationFilter();
+      hspsif.setSsoEnabled( true );
+      hspsif.setSessionExpirationCookies( httpSession, pentahoSession, servletResponse );
       Mockito.verify( servletResponse, Mockito.never() ).addCookie( Mockito.any() );
     } finally {
       PentahoSystem.setSystemSettingsService( systemSettings );

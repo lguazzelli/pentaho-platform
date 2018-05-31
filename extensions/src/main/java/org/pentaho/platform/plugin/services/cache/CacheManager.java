@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.cache;
@@ -130,7 +133,7 @@ public class CacheManager implements ICacheManager {
    * The constructor performs the following tasks:
    * <p>
    * <ul>
-   * <li>Gets the Pentaho System Settings</li>
+   * <li>Gets the Hitachi Vantara System Settings</li>
    * <li>Reads the <code>cache-provider/class</code> element.</li>
    * <li>Reads the <code>cache-provider/region</code> element.</li>
    * <li>Reads in any properties under <code>cache-provider/properties/*</li>
@@ -284,6 +287,21 @@ public class CacheManager implements ICacheManager {
       CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
     }
     return returnValue;
+  }
+
+  public boolean addCacheRegion( String region, Cache cache ) {
+    if ( cacheEnabled ) {
+      if ( !cacheEnabled( region ) ) {
+        regionCache.put( region, cache );
+      } else {
+        CacheManager.logger.warn( Messages.getInstance().getString(
+          "CacheManager.WARN_0002_REGION_ALREADY_EXIST", region ) );
+      }
+    } else {
+      CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) );
+      return false;
+    }
+    return true;
   }
 
   public void clearRegionCache( String region ) {

@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.repository2.unified.jcr.sejcr;
@@ -31,7 +33,7 @@ import org.springframework.extensions.jcr.SessionFactory;
 import org.springframework.extensions.jcr.SessionHolder;
 import org.springframework.extensions.jcr.SessionHolderProvider;
 import org.springframework.extensions.jcr.SessionHolderProviderManager;
-import org.springframework.extensions.jcr.support.GenericSessionHolderProvider;
+import org.springframework.extensions.jcr.jackrabbit.support.JackRabbitSessionHolderProvider;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.Assert;
 
@@ -189,7 +191,7 @@ public class CredentialsStrategySessionFactory implements InitializingBean, Disp
       if ( LOG.isDebugEnabled() ) {
         LOG.debug( "no session holder provider manager set; using the default one" );
       }
-      sessionHolderProvider = new GenericSessionHolderProvider();
+      sessionHolderProvider = new JackRabbitSessionHolderProvider();
     } else {
       sessionHolderProvider = sessionHolderProviderManager.getSessionProvider( getRepository() );
     }
@@ -405,8 +407,7 @@ public class CredentialsStrategySessionFactory implements InitializingBean, Disp
             .addEventListener( eventListeners[ i ].getListener(), eventListeners[ i ].getEventTypes(),
                 eventListeners[ i ]
                     .getAbsPath(), eventListeners[ i ].isDeep(), eventListeners[ i ].getUuid(),
-                eventListeners[ i ].getNodeTypeName(), eventListeners[ i ].isNoLocal()
-            );
+                eventListeners[ i ].getNodeTypeName(), eventListeners[ i ].isNoLocal() );
       }
     }
     return session;

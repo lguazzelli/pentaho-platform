@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,15 +14,19 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2017 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.engine.services;
 
 import mockit.Mock;
 import mockit.MockUp;
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.pentaho.platform.api.engine.ActionSequenceException;
+import org.pentaho.platform.api.engine.ActionValidationException;
 import org.pentaho.platform.api.engine.IActionParameter;
 import org.pentaho.platform.api.engine.IApplicationContext;
 import org.pentaho.platform.api.engine.IParameterProvider;
@@ -42,6 +47,7 @@ import org.pentaho.platform.util.JVMParameterProvider;
 import org.pentaho.platform.util.UUIDUtil;
 import org.pentaho.platform.util.web.SimpleUrlFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -102,8 +108,70 @@ public class MessageFormatterTest {
     assertEquals( "<html><head><title>Pentaho BI Platform - Start Action</title><link rel=\"stylesheet\" "
       + "type=\"text/css\" href=\"/pentaho-style/active/default.css\"></head><body dir=\"LTR\"><table "
       + "cellspacing=\"10\"><tr><td class=\"portlet-section\" colspan=\"3\">Action Successful<hr "
-      + "size=\"1\"/></td></tr><tr><td class=\"portlet-font\" valign=\"top\">Test=&lt;img%20src=&quot;http://www"
-      + ".pentaho.com/sites/all/themes/pentaho_resp/logo.svg&quot;%20/&gt;<br/></td></tr></table></body></html>",
+      + "size=\"1\"/></td></tr><tr><td class=\"portlet-font\" valign=\"top\">Test=<img%20src=\"http://www"
+      + ".pentaho.com/sites/all/themes/pentaho_resp/logo.svg\"%20/><br/></td></tr></table></body></html>",
+      messageBuffer.toString() );
+  }
+
+  @Test
+  public void shouldAddStacktraceWhenShowStacktraceIsTrue() throws Exception {
+    MessageFormatter mf = new MessageFormatter() {
+      @Override
+      String getTemplate( StringBuffer messageBuffer ) {
+        try {
+          return IOUtils.toString( this.getClass()
+            .getResourceAsStream( "viewActionErrorTestTemplate.html" ), "UTF-8" );
+        } catch ( IOException e ) {
+          return null;
+        }
+      }
+      @Override
+      String getStacktrace( ActionSequenceException exception ) {
+        return "Error stacktrace";
+      }
+    };
+    StringBuffer messageBuffer = new StringBuffer();
+    mf.formatExceptionMessage( MessageFormatter.HTML_MIME_TYPE, new ActionValidationException( "Test Error" ),
+      messageBuffer, true );
+    // details controls are not hidden
+    // stacktrace is added
+    assertEquals( "<div id=\"controls\">"
+        + "<a href=\"#\" id=\"details-show\" class=\"showLink\" onclick=\"showHide('details');return false;\">View "
+        + "Details</a>"
+        + "<a href=\"#\" id=\"details-hide\" class=\"hideLink\" onclick=\"showHide('details');return false;\">Hide "
+        + "Details</a>"
+        + "</div>"
+        + "<div id=\"details\" class=\"details\"><span class=\"label\">Stack Trace:</span><pre "
+        + "class=\"stackTrace\">Error stacktrace<pre></div>",
+      messageBuffer.toString() );
+  }
+
+  @Test
+  public void shouldNotAddStacktraceWhenShowStacktraceIsFalse() throws Exception {
+    MessageFormatter mf = new MessageFormatter() {
+      @Override
+      String getTemplate( StringBuffer messageBuffer ) {
+        try {
+          return IOUtils.toString( this.getClass()
+            .getResourceAsStream( "viewActionErrorTestTemplate.html" ), "UTF-8" );
+        } catch ( IOException e ) {
+          return null;
+        }
+      }
+    };
+    StringBuffer messageBuffer = new StringBuffer();
+    mf.formatExceptionMessage( MessageFormatter.HTML_MIME_TYPE, new ActionValidationException( "Test Error" ),
+      messageBuffer, false );
+    // details controls are hidden
+    // stacktrace is not added
+    assertEquals( "<div id=\"controls\" hidden>"
+        + "<a href=\"#\" id=\"details-show\" class=\"showLink\" onclick=\"showHide('details');return false;\">View "
+      + "Details</a>"
+        + "<a href=\"#\" id=\"details-hide\" class=\"hideLink\" onclick=\"showHide('details');return false;\">Hide "
+      + "Details</a>"
+        + "</div>"
+        + "<div id=\"details\" class=\"details\"><span class=\"label\">%STACK_TRACE_LABEL%</span><pre "
+      + "class=\"stackTrace\">%STACK_TRACE%<pre></div>",
       messageBuffer.toString() );
   }
 

@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.action.mondrian.catalog;
@@ -57,7 +60,7 @@ import org.pentaho.platform.plugin.services.cache.CacheManager;
 import org.pentaho.platform.plugin.services.importexport.legacy.MondrianCatalogRepositoryHelper;
 import org.pentaho.platform.repository2.ClientRepositoryPaths;
 import org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils;
-import org.pentaho.platform.util.Base64PasswordService;
+import org.pentaho.platform.util.KettlePasswordService;
 import org.pentaho.platform.util.messages.LocaleHelper;
 import org.pentaho.test.platform.engine.core.MicroPlatform;
 import org.pentaho.test.platform.plugin.UserRoleMapperIT.TestUserRoleListService;
@@ -121,7 +124,7 @@ public class MondrianCatalogHelperIT {
       .thenReturn( rolapConn );
 
     booter = new MicroPlatform( TestResourceLocation.TEST_RESOURCES + "/solution" );
-    booter.define( IPasswordService.class, Base64PasswordService.class, Scope.GLOBAL );
+    booter.define( IPasswordService.class, KettlePasswordService.class, Scope.GLOBAL );
     booter.define( IDatabaseConnection.class, DatabaseConnection.class, Scope.GLOBAL );
     booter.define( IDatabaseDialectService.class, DatabaseDialectService.class, Scope.GLOBAL );
     booter.define( IAclAwareMondrianCatalogService.class, MondrianCatalogHelper.class, Scope.GLOBAL );

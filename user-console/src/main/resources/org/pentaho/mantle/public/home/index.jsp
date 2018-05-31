@@ -12,7 +12,7 @@
 * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 * See the GNU Lesser General Public License for more details.
 *
-* Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+* Copyright (c) 2002-2017 Hitachi Vantara..  All rights reserved.
 --%>
 
 <!DOCTYPE html>
@@ -118,6 +118,11 @@ if ( PentahoSystem.getApplicationContext().getFullyQualifiedServerURL().toLowerC
       });
 
     });
+	
+	// Set a variable that the inner html pages can read to determine if the ruby theme is active
+	if (window.active_theme === "ruby") { 
+	  this.css_custom_location = "css/ccp-ruby.css";
+	}
   </script>
 </head>
 

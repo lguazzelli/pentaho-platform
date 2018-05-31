@@ -5,22 +5,40 @@
   <parent>
     <groupId>pentaho</groupId>
     <artifactId>pentaho-platform-ce-parent</artifactId>
-    <version>8.0-SNAPSHOT</version>
+    <version>9.0.0.0-SNAPSHOT</version>
   </parent>
   <groupId>pentaho</groupId>
   <artifactId>pentaho-platform-core</artifactId>
-  <version>8.0-SNAPSHOT</version>
+  <version>9.0.0.0-SNAPSHOT</version>
   <properties>
     <maven-surefire-plugin.reuseForks>false</maven-surefire-plugin.reuseForks>
     <js.version>1.7R1</js.version>
     <jmock-legacy.version>2.5.1</jmock-legacy.version>
-    <mockito-all.version>1.8.4</mockito-all.version>
+    <powermock.version>1.6.3</powermock.version>
     <jaxen.version>1.1</jaxen.version>
     <jcommon.version>1.0.14</jcommon.version>
     <license.header.definition.file>${basedir}/../license/styles/javadoc_style_license_header.xml</license.header.definition.file>
     <license.header.file>${basedir}/../license/templates/GPL-2.0.txt</license.header.file>
+    <commons-xul.version>9.0.0.0-SNAPSHOT</commons-xul.version>
+    <pentaho-connections.version>9.0.0.0-SNAPSHOT</pentaho-connections.version>
+    <pentaho-actionsequence-dom.version>9.0.0.0-SNAPSHOT</pentaho-actionsequence-dom.version>
+    <pentaho-metadata.version>9.0.0.0-SNAPSHOT</pentaho-metadata.version>
+    <pentaho-versionchecker.version>9.0.0.0-SNAPSHOT</pentaho-versionchecker.version>
+    <pdi.version>9.0.0.0-SNAPSHOT</pdi.version>
   </properties>
   <dependencies>
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mail</artifactId>
+      <version>${mail.version}</version>
+      <scope>compile</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>*</artifactId>
+          <groupId>*</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>org.apache.xmlgraphics</groupId>
       <artifactId>batik-awt-util</artifactId>
@@ -154,9 +172,9 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>commons-httpclient</groupId>
-      <artifactId>commons-httpclient</artifactId>
-      <version>${commons-httpclient.version}</version>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>${httpclient.version}</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -164,6 +182,12 @@
           <groupId>*</groupId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+      <version>4.4.6</version>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>dom4j</groupId>
@@ -492,19 +516,19 @@
     <dependency>
       <groupId>pentaho</groupId>
       <artifactId>pentaho-connections</artifactId>
-      <version>${project.version}</version>
+      <version>${pentaho-connections.version}</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>pentaho</groupId>
-      <artifactId>pentaho-actionsequence-dom</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.pentaho</groupId>
+      <artifactId>actionsequence-dom</artifactId>
+      <version>${pentaho-actionsequence-dom.version}</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>pentaho</groupId>
+      <groupId>org.pentaho</groupId>
       <artifactId>pentaho-metadata</artifactId>
-      <version>${project.version}</version>
+      <version>${pentaho-metadata.version}</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -512,15 +536,15 @@
           <groupId>org.owasp.esapi</groupId>
         </exclusion>
         <exclusion>
-          <artifactId>xalan</artifactId>
-          <groupId>xalan</groupId>
+          <artifactId>commons-httpclient</artifactId>
+          <groupId>commons-httpclient</groupId>
         </exclusion>
       </exclusions>
     </dependency>
     <dependency>
       <groupId>pentaho</groupId>
       <artifactId>pentaho-versionchecker</artifactId>
-      <version>${project.version}</version>
+      <version>${pentaho-versionchecker.version}</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -530,9 +554,9 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>pentaho</groupId>
-      <artifactId>pentaho-xul-core</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.pentaho</groupId>
+      <artifactId>commons-xul-core</artifactId>
+      <version>${commons-xul.version}</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -544,8 +568,19 @@
     <dependency>
       <groupId>pentaho-kettle</groupId>
       <artifactId>kettle-engine</artifactId>
-      <version>${project.version}</version>
+      <version>${pdi.version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>pentaho-kettle</groupId>
+      <artifactId>kettle-core</artifactId>
+      <version>${pdi.version}</version>
     </dependency>
     <dependency>
       <groupId>pentaho</groupId>
@@ -618,12 +653,24 @@
       <artifactId>mockito-all</artifactId>
       <version>${mockito-all.version}</version>
       <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <artifactId>*</artifactId>
-          <groupId>*</groupId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito-core.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-mockito</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jmockit</groupId>

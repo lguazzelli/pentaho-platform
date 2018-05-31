@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,12 +14,15 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.repository2.unified.fileio;
 
 import org.apache.commons.lang.StringUtils;
+import org.pentaho.platform.api.repository2.unified.Converter;
+import org.pentaho.platform.api.repository2.unified.IRepositoryFileData;
 import org.pentaho.platform.api.repository2.unified.ISourcesStreamEvents;
 import org.pentaho.platform.api.repository2.unified.IStreamListener;
 import org.pentaho.platform.api.repository2.unified.IUnifiedRepository;
@@ -40,6 +44,9 @@ import java.util.List;
 
 public class RepositoryFileOutputStream extends ByteArrayOutputStream implements ISourcesStreamEvents {
 
+  private static final String TRANS_EXT = "ktr";
+  private static final String JOB_EXT = "kjb";
+
   protected boolean hidden = false;
   protected String path = null;
   protected IUnifiedRepository repository;
@@ -48,7 +55,7 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
   protected boolean autoCreateDirStructure = false;
   protected boolean closed = false;
   protected boolean flushed = false;
-  protected ArrayList<IStreamListener> listeners = new ArrayList<IStreamListener>();
+  protected ArrayList<IStreamListener> listeners = new ArrayList<>();
 
   public RepositoryFileOutputStream( final String path, final boolean autoCreateUniqueFileName,
       final boolean autoCreateDirStructure, final IUnifiedRepository repository, final boolean hidden ) {
@@ -162,16 +169,16 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
     ByteArrayInputStream bis = new ByteArrayInputStream( toByteArray() );
 
     // make an effort to determine the correct mime type, default to application/octet-stream
-    String ext = RepositoryFilenameUtils.getExtension( path );
+    String extension = RepositoryFilenameUtils.getExtension( path );
     String mimeType = "application/octet-stream"; //$NON-NLS-1$
-    if ( ext != null ) {
-      String tempMimeType = MimeHelper.getMimeTypeFromExtension( "." + ext ); //$NON-NLS-1$
+    if ( extension != null ) {
+      String tempMimeType = MimeHelper.getMimeTypeFromExtension( "." + extension ); //$NON-NLS-1$
       if ( tempMimeType != null ) {
         mimeType = tempMimeType;
       }
     }
 
-    if ( charsetName == null && mimeType != null ) {
+    if ( charsetName == null ) {
       charsetName = MimeHelper.getDefaultCharset( mimeType );
     }
 
@@ -179,15 +186,26 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
     // RepositoryFileWriter
     // but I couldn't figure out a clean way to do that. For now, charsetName is passed in here and we use it if
     // available.
-    final SimpleRepositoryFileData payload = new SimpleRepositoryFileData( bis, charsetName, mimeType );
+    final IRepositoryFileData payload;
+    Converter converter;
+
+    if ( TRANS_EXT.equalsIgnoreCase( extension ) ) {
+      converter = PentahoSystem.get( Converter.class, null, Collections.singletonMap( "name", "PDITransformationStreamConverter" ) );
+      mimeType = "application/vnd.pentaho.transformation";
+    } else if ( JOB_EXT.equalsIgnoreCase( extension ) ) {
+      converter = PentahoSystem.get( Converter.class, null, Collections.singletonMap( "name", "PDIJobStreamConverter" ) );
+      mimeType = "application/vnd.pentaho.job";
+    } else {
+      converter = null;
+    }
+    payload = convert( converter, bis, mimeType );
     if ( !flushed ) {
       RepositoryFile file = repository.getFile( path );
       RepositoryFile parentFolder = getParent( path );
       String baseFileName = RepositoryFilenameUtils.getBaseName( path );
-      String extension = RepositoryFilenameUtils.getExtension( path );
       if ( file == null ) {
         if ( autoCreateDirStructure ) {
-          ArrayList<String> foldersToCreate = new ArrayList<String>();
+          ArrayList<String> foldersToCreate = new ArrayList<>();
           String parentPath = RepositoryFilenameUtils.getFullPathNoEndSeparator( path );
           // Make sure the parent path isn't the root
           while ( ( parentPath != null ) && ( parentPath.length() > 0 && !path.equals( parentPath ) )
@@ -212,13 +230,10 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
             throw new FileNotFoundException();
           }
         }
-        file =
-            new RepositoryFile.Builder( RepositoryFilenameUtils.getName( path ) ).hidden( hidden ).versioned( true )
-                .build(); // Default
-        // versioned to true so that we're keeping history
-        file =
-            repository.createFile( parentFolder.getId(), file, payload,
-                "commit from " + RepositoryFileOutputStream.class.getName() ); //$NON-NLS-1$
+        file = buildRepositoryFile( RepositoryFilenameUtils.getName( path ), extension, baseFileName );
+
+        repository.createFile( parentFolder.getId(), file, payload,
+          "commit from " + RepositoryFileOutputStream.class.getName() ); //$NON-NLS-1$
         for ( IStreamListener listener : listeners ) {
           listener.fileCreated( path );
         }
@@ -228,6 +243,7 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
         if ( autoCreateUniqueFileName ) {
           int nameCount = 1;
           String newFileName = null;
+          String newBaseFileName = null;
 
           List<RepositoryFile> children = repository.getChildren( parentFolder.getId() );
 
@@ -235,10 +251,11 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
           while ( hasFile ) {
             hasFile = false;
             nameCount++;
+            newBaseFileName = baseFileName + "(" + nameCount + ")";
             if ( ( extension != null ) && ( extension.length() > 0 ) ) {
-              newFileName = baseFileName + "(" + nameCount + ")." + extension; //$NON-NLS-1$ //$NON-NLS-2$
+              newFileName = newBaseFileName + "." + extension; //$NON-NLS-1$ //$NON-NLS-2$
             } else {
-              newFileName = baseFileName + "(" + nameCount + ")"; //$NON-NLS-1$ //$NON-NLS-2$
+              newFileName = newBaseFileName; //$NON-NLS-1$ //$NON-NLS-2$
             }
             for ( RepositoryFile child : children ) {
               if ( child.getPath().equals( parentFolder.getPath() + "/" + newFileName ) ) {
@@ -248,9 +265,8 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
             }
           }
 
-          file = new RepositoryFile.Builder( newFileName ).versioned( true ).build(); // Default versioned to true
-                                                                                      // so
-                                                                                      // that we're keeping history
+          file = buildRepositoryFile( newFileName, extension, newBaseFileName );
+
           file = repository.createFile( parentFolder.getId(), file, payload, "New File" ); //$NON-NLS-1$
           path = file.getPath();
           for ( IStreamListener listener : listeners ) {
@@ -269,6 +285,16 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
       repository.updateFile( file, payload, "New File" ); //$NON-NLS-1$
     }
     flushed = true;
+  }
+
+  IRepositoryFileData convert( Converter converter, ByteArrayInputStream bis, String mimeType ) {
+    final IRepositoryFileData payload;
+    if ( converter != null ) {
+      payload = converter.convert( bis, charsetName, mimeType );
+    } else {
+      payload = new SimpleRepositoryFileData( bis, charsetName, mimeType );
+    }
+    return payload;
   }
 
   public String getFilePath() {
@@ -318,5 +344,21 @@ public class RepositoryFileOutputStream extends ByteArrayOutputStream implements
 
   public boolean isFlushed() {
     return flushed;
+  }
+
+  private RepositoryFile buildRepositoryFile( String fileName, String extension, String baseFileName ) {
+    RepositoryFile.Builder fileBuilder = new RepositoryFile.Builder( fileName )
+      .hidden( hidden )
+      .versioned( true ); // Default versioned to true so that we're keeping history
+
+    if ( isKettleExtension( extension ) ) {
+      fileBuilder.title( RepositoryFile.DEFAULT_LOCALE, baseFileName );
+    }
+
+    return fileBuilder.build();
+  }
+
+  private static boolean isKettleExtension( String extension ) {
+    return TRANS_EXT.equalsIgnoreCase( extension ) || JOB_EXT.equalsIgnoreCase( extension );
   }
 }

@@ -270,17 +270,16 @@ a.try-pentaho-btn{
   font-size: 16px;
   background-color: #005da6;
   color: #FFFFFF;
-
   transition: background-color .1s ease;
   -webkit-transition: background-color .1s ease;
   -moz-transition: background-color .1s ease;
   -o-transition: background-color .1s ease;
-
   margin-top: 5px;
 }
 a.try-pentaho-btn:hover{
   text-decoration: none;
   background-color: #0f2b5b;
+  color: #FFFFFF
 }
 
 a.live-chat-btn{

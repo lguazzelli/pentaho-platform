@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.servlet;
@@ -81,7 +84,7 @@ public class PluginDispatchServlet implements Servlet {
     Servlet pluginServlet = getTargetServlet( request, response );
 
     if ( pluginServlet == null ) {
-      response.setStatus( 404 );
+      response.sendError( 404 );
       // FIXME: log more detail here for debugging
       return;
     }

@@ -1,19 +1,21 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, version 2 as published by the Free Software
+ * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
  *
- * You should have received a copy of the GNU General Public License along with this
- * program; if not, you can obtain a copy at http://www.gnu.org/licenses/gpl-2.0.html
+ * You should have received a copy of the GNU Lesser General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  * or from the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ * See the GNU Lesser General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.metadata;
@@ -28,8 +30,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-
-import junit.framework.TestCase;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -60,6 +60,11 @@ import org.pentaho.platform.repository2.unified.RepositoryUtils;
 import org.pentaho.platform.repository2.unified.fs.FileSystemBackedUnifiedRepository;
 import org.pentaho.test.platform.repository2.unified.MockUnifiedRepository;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -79,13 +84,13 @@ import static org.mockito.Matchers.eq;
  *
  * @author <a href="mailto:dkincade@pentaho.com">David M. Kincade</a>
  */
-public class PentahoMetadataDomainRepositoryTest extends TestCase {
+public class PentahoMetadataDomainRepositoryTest {
   private static final String SAMPLE_DOMAIN_ID = "sample";
   private static final String STEEL_WHEELS = "steel-wheels";
   private static final Properties EMPTY_PROPERTIES = new Properties();
   private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream( "".getBytes() );
 
-  IUnifiedRepository repository;
+  private IUnifiedRepository repository;
   private PentahoMetadataDomainRepository domainRepository;
   private PentahoMetadataDomainRepository domainRepositorySpy;
   private IAclNodeHelper aclNodeHelper;
@@ -132,14 +137,14 @@ public class PentahoMetadataDomainRepositoryTest extends TestCase {
   }
 
   @After
-  public void tearDown() throws Exception {
+  public void tearDown() {
     repository = null;
     domainRepository = null;
     domainRepositorySpy = null;
   }
 
   @Test
-  public void testInitialization() throws Exception {
+  public void testInitialization() {
     try {
       createDomainRepository( null );
       fail( "An exception should be thrown" );
@@ -194,6 +199,7 @@ public class PentahoMetadataDomainRepositoryTest extends TestCase {
       domainRepositorySpy.storeDomain( null, null, true );
       fail( "Null InputStream should throw an exception" );
     } catch ( IllegalArgumentException success ) {
+      //ignored
     }
 
     try {
@@ -256,11 +262,26 @@ public class PentahoMetadataDomainRepositoryTest extends TestCase {
     try {
       domainRepositorySpy.storeDomain( sample, false ); fail( "A duplicate domain with overwrite=false should fail" );
     } catch ( DomainAlreadyExistsException success ) {
+      //ignored
     }
 
     sample.addLogicalModel( "test" );
     domainRepositorySpy.storeDomain( sample, true );
     assertEquals( 1, domainRepositorySpy.getDomain( SAMPLE_DOMAIN_ID ).getLogicalModels().size() );
+
+    MockDomain xmiExtensionSample = new MockDomain( SAMPLE_DOMAIN_ID + ".xmi" );
+    try {
+      domainRepositorySpy.storeDomain( xmiExtensionSample, false ); fail( "A duplicate domain with overwrite=false should fail" );
+    } catch ( DomainAlreadyExistsException success ) {
+      //ignored
+    }
+
+    xmiExtensionSample.addLogicalModel( "test1" );
+    xmiExtensionSample.addLogicalModel( "test2" );
+
+    domainRepositorySpy.storeDomain( xmiExtensionSample, true );
+
+    assertEquals( 2, domainRepositorySpy.getDomain( SAMPLE_DOMAIN_ID ).getLogicalModels().size() );
 
     final RepositoryFile folder = domainRepositorySpy.getMetadataDir();
     assertNotNull( folder );
@@ -514,24 +535,28 @@ public class PentahoMetadataDomainRepositoryTest extends TestCase {
       domainRepositorySpy.removeModel( null, null );
       fail( "Should throw exception" );
     } catch ( Exception success ) {
+      //ignored
     }
 
     try {
       domainRepositorySpy.removeModel( "", null );
       fail( "Should throw exception" );
     } catch ( Exception success ) {
+      //ignored
     }
 
     try {
       domainRepositorySpy.removeModel( "valid", null );
       fail( "Should throw exception" );
     } catch ( Exception success ) {
+      //ignored
     }
 
     try {
       domainRepositorySpy.removeModel( "valid", "" );
       fail( "Should throw exception" );
     } catch ( Exception success ) {
+      //ignored
     }
 
     // Deleting a model from a domain that doesn't exist should not throw exception
@@ -906,10 +931,10 @@ public class PentahoMetadataDomainRepositoryTest extends TestCase {
     private List<LogicalModel> logicalModels;
     private List<LocaleType> locals;
 
-    public MockDomain( final String id ) {
+    MockDomain( final String id ) {
       this.id = id;
-      logicalModels = new ArrayList<LogicalModel>();
-      locals = new ArrayList<LocaleType>();
+      logicalModels = new ArrayList<>();
+      locals = new ArrayList<>();
     }
 
     public String getId() {
@@ -927,7 +952,7 @@ public class PentahoMetadataDomainRepositoryTest extends TestCase {
     private class MockLogicalModel extends LogicalModel {
       final String modelId;
 
-      public MockLogicalModel( final String modelId ) {
+      MockLogicalModel( final String modelId ) {
         this.modelId = modelId;
       }
 
@@ -977,7 +1002,7 @@ public class PentahoMetadataDomainRepositoryTest extends TestCase {
    * @return
    * @throws Exception
    */
-  private static final Domain loadDomain( final String domainId, final String domainFile ) throws Exception {
+  private static Domain loadDomain( final String domainId, final String domainFile ) throws Exception {
     final InputStream in = PentahoMetadataDomainRepositoryTest.class.getResourceAsStream( domainFile );
     final XmiParser parser = new XmiParser();
     final Domain domain = parser.parseXmi( in );

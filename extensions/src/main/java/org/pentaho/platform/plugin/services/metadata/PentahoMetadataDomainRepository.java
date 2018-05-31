@@ -1,19 +1,21 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, version 2 as published by the Free Software
+ * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
  *
- * You should have received a copy of the GNU General Public License along with this
- * program; if not, you can obtain a copy at http://www.gnu.org/licenses/gpl-2.0.html
+ * You should have received a copy of the GNU Lesser General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  * or from the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ * See the GNU Lesser General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.metadata;
@@ -103,11 +105,13 @@ public class PentahoMetadataDomainRepository implements IMetadataDomainRepositor
   // The default encoding for file storage
   private static final String DEFAULT_ENCODING = "UTF-8";
 
-  // The default mime-type for the Pentaho Domain files
+  // The default mime-type for the Hitachi Vantara Domain files
   private static final String DOMAIN_MIME_TYPE = "text/xml";
 
   // The default mime-type for locale files
   private static final String LOCALE_MIME_TYPE = "text/plain";
+
+  private static final String XMI_EXTENSION = ".xmi";
 
   // caching immutable object
   private static final EnumSet<RepositoryFilePermission> READ = EnumSet.of( RepositoryFilePermission.READ );
@@ -299,7 +303,10 @@ public class PentahoMetadataDomainRepository implements IMetadataDomainRepositor
     }
 
     // Check to see if the domain already exists
-    final RepositoryFile domainFile = getMetadataRepositoryFile( domainId );
+    RepositoryFile domainFile = getMetadataRepositoryFile( domainId );
+    if ( domainFile == null && domainId.endsWith( XMI_EXTENSION ) ) {
+      domainFile = getMetadataRepositoryFile( domainId.substring( 0, domainId.length() - XMI_EXTENSION.length() ) );
+    }
     if ( !overwrite && domainFile != null ) {
       final String errorString =
         messages.getErrorString( "PentahoMetadataDomainRepository.ERROR_0002_DOMAIN_ALREADY_EXISTS", domainId );
@@ -447,7 +454,12 @@ public class PentahoMetadataDomainRepository implements IMetadataDomainRepositor
         if ( hasAccessFor( file ) ) {
           SimpleRepositoryFileData data = repository.getDataForRead( file.getId(), SimpleRepositoryFileData.class );
           if ( data != null ) {
-            domain = xmiParser.parseXmi( data.getStream() );
+            InputStream is = data.getStream();
+            try {
+              domain = xmiParser.parseXmi( is );
+            } finally {
+              IOUtils.closeQuietly( is );
+            }
             domain.setId( domainId );
             logger.debug( "loaded domain" );
             // Load any I18N bundles

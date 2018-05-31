@@ -5,11 +5,11 @@
   <parent>
     <groupId>org.pentaho</groupId>
     <artifactId>pentaho-ce-jar-parent-pom</artifactId>
-    <version>8.0-SNAPSHOT</version>
+    <version>9.0.0.0-SNAPSHOT</version>
   </parent>
   <groupId>pentaho</groupId>
   <artifactId>pentaho-platform-ce-parent</artifactId>
-  <version>8.0-SNAPSHOT</version>
+  <version>9.0.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Pentaho BI Platform Community Edition</name>
   <description>Parent pom for pentaho-platform projects</description>
@@ -20,13 +20,14 @@
     <url>https://github.com/pentaho/pentaho-platform</url>
   </scm>
   <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
     <urlrewrite.version>3.2.0</urlrewrite.version>
     <commons-fileupload.version>1.3.2</commons-fileupload.version>
     <jsr305.version>1.3.9</jsr305.version>
     <aopalliance.version>1.0</aopalliance.version>
     <spring-binding.version>2.4.4.RELEASE</spring-binding.version>
     <jmock.version>2.5.1</jmock.version>
-    <xalan.version>2.7.1</xalan.version>
     <ftp4che.version>0.7.1</ftp4che.version>
     <mvel2.version>2.0.10</mvel2.version>
     <xbean-spring.version>2.7</xbean-spring.version>
@@ -34,22 +35,21 @@
     <axiom.version>1.2.8</axiom.version>
     <infobright-core.version>3.4</infobright-core.version>
     <sassyreader.version>0.5</sassyreader.version>
-    <jaxb-impl.version>2.2.3-1</jaxb-impl.version>
     <activation.version>1.1</activation.version>
     <enunciate-jersey-rt.version>1.27</enunciate-jersey-rt.version>
-    <commons-vfs2.version>2.1-20150824</commons-vfs2.version>
-    <json.version>8.0-SNAPSHOT</json.version>
-    <poi.version>3.15</poi.version>
+    <commons-vfs2.version>2.2</commons-vfs2.version>
+    <pentaho-json.version>9.0.0.0-SNAPSHOT</pentaho-json.version>
+    <poi.version>3.17</poi.version>
     <slf4j-api.version>1.7.7</slf4j-api.version>
     <bsh.version>1.3.0</bsh.version>
-    <groovy-all.version>2.4.7</groovy-all.version>
+    <groovy-all.version>2.4.8</groovy-all.version>
     <commons-beanutils.version>1.9.3</commons-beanutils.version>
-    <license.current.year>2016</license.current.year>
+    <license.current.year>2018</license.current.year>
     <jboss-modules.version>1.4.3.Final</jboss-modules.version>
     <jsf-api.version>1.1</jsf-api.version>
     <xercesImpl.version>2.9.1</xercesImpl.version>
     <jsp-api.version>2.1</jsp-api.version>
-    <castor.version>1.0.5</castor.version>
+    <castor.version>1.4.1</castor.version>
     <kfs.version>0.3</kfs.version>
     <jersey.version>1.19.1</jersey.version>
     <LucidDbClient-minimal.version>0.9.4</LucidDbClient-minimal.version>
@@ -72,7 +72,7 @@
     <gdata-analytics-meta.version>2.1</gdata-analytics-meta.version>
     <syslog4j.version>0.9.46</syslog4j.version>
     <janino.version>2.5.16</janino.version>
-    <postgresql.version>9.3-1102-jdbc4</postgresql.version>
+    <postgresql.version>42.1.1</postgresql.version>
     <bean-matchers.version>0.9</bean-matchers.version>
     <json-simple.version>1.1</json-simple.version>
     <axis2.version>1.5</axis2.version>
@@ -135,7 +135,7 @@
     <jcl-over-slf4j.version>1.7.7</jcl-over-slf4j.version>
     <fontbox.version>0.1.0</fontbox.version>
     <ldapjdk.version>20000524</ldapjdk.version>
-    <weka.version>3.8.1.1</weka.version>
+    <weka.version>3.8.0.1</weka.version>
     <annogen.version>0.1.0</annogen.version>
     <org.apache.felix.main.version>4.2.1</org.apache.felix.main.version>
     <jcifs.version>1.3.3</jcifs.version>
@@ -146,7 +146,7 @@
     <spring-security-core-tests.version>2.0.5.RELEASE</spring-security-core-tests.version>
     <jta.version>1.1</jta.version>
     <jdom.version>1.0</jdom.version>
-    <xstream.version>1.4.9</xstream.version>
+    <xstream.version>1.4.10</xstream.version>
     <slf4j-log4j12.version>1.7.7</slf4j-log4j12.version>
     <jxl.version>2.6.12</jxl.version>
     <soap.version>2.3</soap.version>
@@ -181,7 +181,8 @@
     <owasp.encoder.version>1.2</owasp.encoder.version>
     <powermock.version>1.6.3</powermock.version>
     <spring.framework.version>4.3.2.RELEASE</spring.framework.version>
-    <commons-httpclient.version>3.1</commons-httpclient.version>
+    <spring.webmvc.version>4.3.5.RELEASE</spring.webmvc.version>
+    <httpclient.version>4.5.3</httpclient.version>
     <derby.version>10.5.3.0_1</derby.version>
     <ehcache-core.version>2.5.1</ehcache-core.version>
     <mockito-core.version>1.10.19</mockito-core.version>
@@ -190,17 +191,17 @@
     <org.apache.felix.http.version>2.3.0</org.apache.felix.http.version>
     <drools.version>6.4.0.Final</drools.version>
     <snmp4j.version>1.9.3d</snmp4j.version>
-    <batik.version>1.8</batik.version>
+    <batik.version>1.9.1</batik.version>
     <itext.version>2.1.7</itext.version>
-    <mondrian.version>3.15-SNAPSHOT</mondrian.version>
+    <mondrian.version>9.0.0.0-SNAPSHOT</mondrian.version>
     <mockito-all.version>1.10.19</mockito-all.version>
-    <org.apache.karaf.jaas.version>2.4.2</org.apache.karaf.jaas.version>
+    <org.apache.karaf.jaas.version>3.0.3</org.apache.karaf.jaas.version>
     <log4j.version>1.2.17</log4j.version>
     <wsdl4j-qname.version>1.6.1</wsdl4j-qname.version>
     <rome.version>1.0</rome.version>
     <javatar.version>2.5</javatar.version>
     <elasticsearch.version>0.16.3</elasticsearch.version>
-    <httpcore.version>4.0-beta3</httpcore.version>
+    <httpcore.version>4.4.6</httpcore.version>
     <jfreechart.version>1.0.13</jfreechart.version>
     <monetdb-jdbc.version>2.8</monetdb-jdbc.version>
     <taglibs-standard-impl.version>1.2.5</taglibs-standard-impl.version>
@@ -240,10 +241,9 @@
     <jsendnsca.version>2.0.1</jsendnsca.version>
     <neethi.version>2.0.1</neethi.version>
     <bcmail.version>138</bcmail.version>
-    <jackson.version>1.9.3</jackson.version>
     <barbecue.version>1.5-beta1</barbecue.version>
     <jaxws-spring.version>1.8</jaxws-spring.version>
-    <jackrabbit.version>2.10.0</jackrabbit.version>
+    <jackrabbit.version>2.14.2</jackrabbit.version>
     <snappy-java.version>1.1.0</snappy-java.version>
     <antlr-complete.version>3.5.2</antlr-complete.version>
     <hibernate-core.version>3.6.9.Final</hibernate-core.version>
@@ -259,6 +259,7 @@
     <quartz.version>1.7.2</quartz.version>
     <hibernate-jpa-2.0-api.version>1.0.1.Final</hibernate-jpa-2.0-api.version>
     <hsqldb.version>2.3.2</hsqldb.version>
+    <apache-log4j-extras>1.2.17</apache-log4j-extras>
   </properties>
   <build>
     <pluginManagement>
@@ -338,7 +339,7 @@
   </build>
   <profiles>
     <profile>
-      <id>platform-base</id>
+      <id>platform-api</id>
       <activation>
         <property>
           <name>!skipDefault</name>
@@ -346,6 +347,16 @@
       </activation>
       <modules>
         <module>api</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>platform-base</id>
+      <activation>
+        <property>
+          <name>!skipDefault</name>
+        </property>
+      </activation>
+      <modules>
         <module>core</module>
         <module>repository</module>
         <module>scheduler</module>
@@ -396,9 +407,6 @@
                 <inherited>false</inherited>
               </reportSet>
             </reportSets>
-            <configuration>
-              <linkJavadoc>true</linkJavadoc>
-            </configuration>
           </plugin>
           <plugin>
             <artifactId>maven-javadoc-plugin</artifactId>
@@ -411,9 +419,6 @@
                 <inherited>false</inherited>
               </reportSet>
             </reportSets>
-            <configuration>
-              <failOnError>false</failOnError>
-            </configuration>
           </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
@@ -426,15 +431,27 @@
                 <inherited>false</inherited>
               </reportSet>
             </reportSets>
-            <configuration>
-              <configLocation>${checkstyle-config-url}</configLocation>
-              <propertiesLocation>${checkstyle-properties-url}</propertiesLocation>
-              <linkXRef>true</linkXRef>
-              <cacheFile />
-            </configuration>
           </plugin>
         </plugins>
       </reporting>
     </profile>
   </profiles>
+
+
+  <repositories>
+    <repository>
+      <id>pentaho-public</id>
+      <name>Pentaho Public</name>
+      <url>http://nexus.pentaho.org/content/groups/omni/</url>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>interval:15</updatePolicy>
+      </snapshots>
+    </repository>
+  </repositories>
+
 </project>

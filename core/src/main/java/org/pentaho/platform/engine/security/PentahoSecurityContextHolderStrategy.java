@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.engine.security;
@@ -24,7 +26,7 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.core.context.SecurityContextImpl;
 
 /**
- * Used by Spring Security's {@link org.springframework.security.context.SecurityContextHolder} to govern the creation
+ * Used by Spring Security's {@link org.springframework.security.core.context.SecurityContextHolder} to govern the creation
  * and scope of a {@link SecurityContext}. This implementation is, with respect scope, the same as
  * org.springframework.security.context.InheritableThreadLocalSecurityContextHolderStrategy. The SecurityContext
  * implementations factoried by this class are of our own type {@link PentahoSecurityContextImpl} which manages
@@ -36,14 +38,14 @@ import org.springframework.security.core.context.SecurityContextImpl;
 public class PentahoSecurityContextHolderStrategy implements SecurityContextHolderStrategy {
 
 
-  private static InheritableThreadLocal context = new InheritableThreadLocal();
+  private static InheritableThreadLocal<SecurityContext> context = new InheritableThreadLocal<>();
 
   public SecurityContext getContext() {
     if ( context.get() == null ) {
       context.set( new PentahoSecurityContextImpl() );
     }
 
-    return (SecurityContext) context.get();
+    return context.get();
   }
 
   public void setContext( SecurityContext sContext ) {
@@ -55,7 +57,7 @@ public class PentahoSecurityContextHolderStrategy implements SecurityContextHold
   }
 
   public static final class PentahoSecurityContextImpl extends SecurityContextImpl {
-    InheritableThreadLocal<Authentication> authentication = new InheritableThreadLocal<Authentication>();
+    InheritableThreadLocal<Authentication> authentication = new InheritableThreadLocal<>();
 
     @Override public Authentication getAuthentication() {
       return authentication.get();

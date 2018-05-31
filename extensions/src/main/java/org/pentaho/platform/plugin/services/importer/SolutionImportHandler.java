@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.importer;
@@ -34,6 +37,7 @@ import java.util.zip.ZipInputStream;
 
 import javax.ws.rs.core.Response;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
@@ -87,6 +91,8 @@ public class SolutionImportHandler implements IPlatformImportHandler {
 
   public static final String RESERVEDMAPKEY_LINEAGE_ID = "lineage-id";
 
+  private static final String XMI_EXTENSION = ".xmi";
+
   private static final String sep = ";";
 
   private IUnifiedRepository repository; // TODO inject via Spring
@@ -138,6 +144,9 @@ public class SolutionImportHandler implements IPlatformImportHandler {
       for ( ExportManifestMetadata exportManifestMetadata : metadataList ) {
 
         String domainId = exportManifestMetadata.getDomainId();
+        if ( domainId != null && !domainId.endsWith( XMI_EXTENSION ) ) {
+          domainId = domainId + XMI_EXTENSION;
+        }
         boolean overWriteInRepository = isOverwriteFile();
         RepositoryFileImportBundle.Builder bundleBuilder =
             new RepositoryFileImportBundle.Builder().charSet( "UTF-8" )
@@ -275,7 +284,13 @@ public class SolutionImportHandler implements IPlatformImportHandler {
       ManifestFile manifestFile = getImportSession().getManifestFile( sourcePath, file != null );
 
       bundleBuilder.hidden( isFileHidden( file, manifestFile, sourcePath ) );
-      bundleBuilder.schedulable( isSchedulable( file, manifestFile ) );
+      boolean isSchedulable = isSchedulable( file, manifestFile );
+
+      if ( isSchedulable ) {
+        bundleBuilder.schedulable( isSchedulable );
+      } else {
+        bundleBuilder.schedulable( fileIsScheduleInputSource( manifest, sourcePath ) );
+      }
 
       IPlatformImportBundle platformImportBundle = build( bundleBuilder );
       importer.importFile( platformImportBundle );
@@ -288,7 +303,7 @@ public class SolutionImportHandler implements IPlatformImportHandler {
     if ( manifest != null ) {
       importSchedules( manifest.getScheduleList() );
 
-      // Add Pentaho Connections
+      // Add Hitachi Vantara Connections
       List<org.pentaho.database.model.DatabaseConnection> datasourceList = manifest.getDatasourceList();
       if ( datasourceList != null ) {
         IDatasourceMgmtService datasourceMgmtSvc = PentahoSystem.get( IDatasourceMgmtService.class );
@@ -587,6 +602,28 @@ public class SolutionImportHandler implements IPlatformImportHandler {
         }
       }
     }
+  }
+  /**
+   * See BISERVER-13481 . For backward compatibility we must check if there are any schedules
+   * which refers to this file. If yes make this file schedulable
+   */
+  @VisibleForTesting
+  boolean fileIsScheduleInputSource( ExportManifest manifest, String sourcePath ) {
+    boolean isSchedulable = false;
+    if ( sourcePath != null && manifest != null
+            && manifest.getScheduleList() != null ) {
+      String path = sourcePath.startsWith( "/" ) ? sourcePath : "/" + sourcePath;
+      isSchedulable = manifest.getScheduleList().stream()
+              .anyMatch( schedule -> path.equals( schedule.getInputFile() ) );
+    }
+
+    if ( isSchedulable ) {
+      log.warn( "File [" + sourcePath + "] doesn't have schedulable permission ( isSchedulable = false) "
+              + "but there are some schedule(s) in import bundle which refers the file " );
+      log.warn( "Assigning 'isSchedulable=true' permission for file [" + sourcePath + "] ... " );
+    }
+
+    return isSchedulable;
   }
 
   private boolean isFileHidden( RepositoryFile file, ManifestFile manifestFile, String sourcePath ) {

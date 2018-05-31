@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.repository2.unified.jcr;
@@ -77,6 +79,15 @@ public interface IDeleteHelper {
    * @return list of deleted files for this user
    */
   List<RepositoryFile> getDeletedFiles( final Session session, final PentahoJcrConstants pentahoJcrConstants )
+    throws RepositoryException;
+
+  /**
+   * Lists deleted files for all users. In this case, the path field of each file is the original path where it was
+   * located prior to deletion. This is the administrator "recycle bin" view.
+   * 
+   * @return list of deleted files for all users
+   */
+  List<RepositoryFile> getAllDeletedFiles( final Session session, final PentahoJcrConstants pentahoJcrConstants )
     throws RepositoryException;
 
   /**

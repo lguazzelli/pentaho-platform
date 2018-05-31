@@ -1,19 +1,28 @@
-/*
- * Copyright 2002 - 2016 Pentaho Corporation.  All rights reserved.
+/*!
  *
- * This software was developed by Pentaho Corporation and is provided under the terms
- * of the Mozilla Public License, Version 1.1, or any later version. You may not use
- * this file except in compliance with the license. If you need a copy of the license,
- * please go to http://www.mozilla.org/MPL/MPL-1.1.txt. The Initial Developer is Pentaho Corporation.
+ * This program is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
+ * Foundation.
  *
- * Software distributed under the Mozilla Public License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or  implied. Please refer to
- * the license for the specific language governing your rights and limitations.
+ * You should have received a copy of the GNU Lesser General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+ * or from the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Lesser General Public License for more details.
+ *
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.importexport.legacy;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.engine.IUserRoleListService;
 import org.pentaho.platform.api.repository.RepositoryException;
@@ -64,6 +73,8 @@ public class MondrianCatalogRepositoryHelper {
   public static final String ETC_OLAP_SERVERS_JCR_FOLDER =
       ClientRepositoryPaths.getEtcFolderPath() + RepositoryFile.SEPARATOR + "olap-servers";
   private boolean isSecured = false;
+
+  private static final Log logger = LogFactory.getLog( MondrianCatalogRepositoryHelper.class );
 
   private IUnifiedRepository repository;
 
@@ -437,6 +448,11 @@ public class MondrianCatalogRepositoryHelper {
 
     RepositoryFile catalogFolder =
         repository.getFile( ETC_MONDRIAN_JCR_FOLDER + RepositoryFile.SEPARATOR + catalogName );
+
+    if ( catalogFolder == null ) {
+      logger.warn( "Catalog " + catalogName + " not found" );
+      throw new RepositoryException( "Catalog " + catalogName + " not found" );
+    }
 
     for ( RepositoryFile repoFile : repository.getChildren( catalogFolder.getId() ) ) {
       RepositoryFileInputStream is;

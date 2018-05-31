@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.mantle.client.commands;
@@ -49,6 +52,13 @@ import org.pentaho.mantle.client.ui.PerspectiveManager;
 
 import java.util.Date;
 
+/**
+ * Run In Background Command
+ *
+ * Note that the run in background command functionality is similar to schedule functionality. While a lot of code is
+ * duplicated over the two commands, quite a bit of screen flow / controller logic is embedded in the view dialogs.
+ * Combining these would make more sense once the control flow is removed from the views and abstracted into controllers.
+ */
 public class RunInBackgroundCommand extends AbstractCommand {
   String moduleBaseURL = GWT.getModuleBaseURL();
 
@@ -69,6 +79,8 @@ public class RunInBackgroundCommand extends AbstractCommand {
   private String solutionTitle = null;
   private String outputLocationPath = null;
   private String outputName = null;
+  private String overwriteFile;
+  private String dateFormat;
 
   public String getSolutionTitle() {
     return solutionTitle;
@@ -110,6 +122,42 @@ public class RunInBackgroundCommand extends AbstractCommand {
     this.outputName = outputName;
   }
 
+  /**
+   * Get Date Format
+   *
+   * @return a string representation of a date format
+   */
+  public String getDateFormat() {
+    return dateFormat;
+  }
+
+  /**
+   * Set Date Format
+   *
+   * @param dateFormat a string representation of a date format
+   */
+  public void setDateFormat( String dateFormat ) {
+    this.dateFormat = dateFormat;
+  }
+
+  /**
+   * Get Overwrite File
+   *
+   * @return the string "true" if the file should be overwritten, otherwise "false"
+   */
+  public String getOverwriteFile() {
+    return overwriteFile;
+  }
+
+  /**
+   * Set Overwrite File
+   *
+   * @param overwriteFile the string "true" if the file should be overwritten, otherwise "false"
+   */
+  public void setOverwriteFile( String overwriteFile ) {
+    this.overwriteFile = overwriteFile;
+  }
+
   protected void performOperation() {
     final SolutionBrowserPanel sbp = SolutionBrowserPanel.getInstance();
     if ( this.getSolutionPath() != null ) {
@@ -147,9 +195,11 @@ public class RunInBackgroundCommand extends AbstractCommand {
   protected void showDialog( final boolean feedback ) {
     final ScheduleOutputLocationDialog outputLocationDialog = new ScheduleOutputLocationDialog( solutionPath ) {
       @Override
-      protected void onSelect( final String name, final String outputLocationPath ) {
+      protected void onSelect( final String name, final String outputLocationPath, final boolean overwriteFile, final String dateFormat ) {
         setOutputName( name );
         setOutputLocationPath( outputLocationPath );
+        setOverwriteFile( String.valueOf( overwriteFile ) );
+        setDateFormat( dateFormat );
         performOperation( feedback );
       }
     };
@@ -271,6 +321,20 @@ public class RunInBackgroundCommand extends AbstractCommand {
           if ( response.getStatusCode() == Response.SC_OK ) {
             final JSONObject scheduleRequest = new JSONObject();
             scheduleRequest.put( "inputFile", new JSONString( filePath ) ); //$NON-NLS-1$
+
+            //Set date format to append to filename
+            if ( StringUtils.isEmpty( getDateFormat() ) ) {
+              scheduleRequest.put( "appendDateFormat", JSONNull.getInstance() ); //$NON-NLS-1$
+            } else {
+              scheduleRequest.put( "appendDateFormat", new JSONString( getDateFormat() ) ); //$NON-NLS-1$
+            }
+
+            //Set whether to overwrite the file
+            if ( StringUtils.isEmpty( getOverwriteFile() ) ) {
+              scheduleRequest.put( "overwriteFile", JSONNull.getInstance() ); //$NON-NLS-1$
+              } else {
+              scheduleRequest.put( "overwriteFile", new JSONString( getOverwriteFile() ) ); //$NON-NLS-1$
+            }
 
             // Set job name
             if ( StringUtils.isEmpty( getOutputName() ) ) {

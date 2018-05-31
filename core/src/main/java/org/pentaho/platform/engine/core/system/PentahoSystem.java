@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2017 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.engine.core.system;
@@ -81,6 +83,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.User;
 
+@SuppressWarnings( { "rawtypes", "unchecked" } )
 public class PentahoSystem {
 
   public static final boolean debug = true;
@@ -128,17 +131,21 @@ public class PentahoSystem {
 
   public static final String WAIT_SECONDS = "waitSeconds";
 
+  public static final String CORS_REQUESTS_ALLOWED = "cors-requests-allowed";
+
+  public static final String CORS_REQUESTS_ALLOWED_DOMAINS = "cors-requests-allowed-domains";
+
   private static Map globalAttributes;
 
   private static SimpleParameterProvider globalParameters;
 
   private static ISystemSettings systemSettingsService;
 
-  private static List<IPentahoPublisher> administrationPlugins = new ArrayList<IPentahoPublisher>();
+  private static List<IPentahoPublisher> administrationPlugins = new ArrayList<>();
 
-  private static List<IPentahoSystemListener> listeners = new ArrayList<IPentahoSystemListener>();
+  private static List<IPentahoSystemListener> listeners = new ArrayList<>();
 
-  private static List<ISessionStartupAction> sessionStartupActions = new ArrayList<ISessionStartupAction>();
+  private static List<ISessionStartupAction> sessionStartupActions = new ArrayList<>();
 
   private static AggregateObjectFactory aggObjectFactory = new AggregateObjectFactory();
 
@@ -146,11 +153,11 @@ public class PentahoSystem {
 
   private static final Map initializationFailureDetailsMap = Collections.synchronizedMap( new HashMap() );
 
-  private static final List<String> RequiredObjects = new ArrayList<String>();
+  private static final List<String> RequiredObjects = new ArrayList<>();
 
-  private static final List<String> KnownOptionalObjects = new ArrayList<String>();
+  private static final List<String> KnownOptionalObjects = new ArrayList<>();
 
-  private static final List<String> IgnoredObjects = new ArrayList<String>();
+  private static final List<String> IgnoredObjects = new ArrayList<>();
 
   public static final int SYSTEM_NOT_INITIALIZED = -1;
 
@@ -876,81 +883,80 @@ public class PentahoSystem {
   }
 
   public static void sessionStartup( final IPentahoSession session, IParameterProvider sessionParameters ) {
-
-    List<ISessionStartupAction> sessionStartupActions =
-        PentahoSystem.getSessionStartupActionsForType( session.getClass().getName() );
+    List<ISessionStartupAction> sessionStartupActions = PentahoSystem.getSessionStartupActionsForType( session.getClass().getName() );
     if ( sessionStartupActions == null ) {
       // nothing to do...
       return;
     }
-
     if ( !session.isAuthenticated() ) {
       return;
     }
-
-    if ( debug ) {
-      Logger.debug( PentahoSystem.class, "Process session startup actions" ); //$NON-NLS-1$
-    }
-    // TODO this needs more validation
-    if ( sessionStartupActions != null ) {
-      for ( ISessionStartupAction sessionStartupAction : sessionStartupActions ) {
-        // parse the actionStr out to identify an action
-        // now execute the action...
-
-        SimpleOutputHandler outputHandler = null;
-
-        String instanceId = null;
-
-        ISolutionEngine solutionEngine = PentahoSystem.get( ISolutionEngine.class, session );
-        solutionEngine.setLoggingLevel( PentahoSystem.loggingLevel );
-        solutionEngine.init( session );
-
-        String baseUrl = ""; //$NON-NLS-1$
-        HashMap parameterProviderMap = new HashMap();
-        if ( sessionParameters == null ) {
-          sessionParameters = new PentahoSessionParameterProvider( session );
+    Boolean startupActionsFired = (Boolean) session.getAttribute( "StartupActionsFired" );
+    if ( ( startupActionsFired == null ) || ( !startupActionsFired ) ) {
+      try {
+        if ( debug ) {
+          Logger.debug( PentahoSystem.class, "Process session startup actions" ); //$NON-NLS-1$
         }
+        if ( sessionStartupActions != null ) {
+          for ( ISessionStartupAction sessionStartupAction : sessionStartupActions ) {
+            // parse the actionStr out to identify an action
+            // now execute the action...
+            SimpleOutputHandler outputHandler = null;
+            String instanceId = null;
 
-        parameterProviderMap.put( SCOPE_SESSION, sessionParameters );
+            ISolutionEngine solutionEngine = PentahoSystem.get( ISolutionEngine.class, session );
+            solutionEngine.setLoggingLevel( PentahoSystem.loggingLevel );
+            solutionEngine.init( session );
 
-        IPentahoUrlFactory urlFactory = new SimpleUrlFactory( baseUrl );
+            String baseUrl = ""; //$NON-NLS-1$
+            HashMap parameterProviderMap = new HashMap();
+            if ( sessionParameters == null ) {
+              sessionParameters = new PentahoSessionParameterProvider( session );
+            }
 
-        ArrayList messages = new ArrayList();
+            parameterProviderMap.put( SCOPE_SESSION, sessionParameters );
+            IPentahoUrlFactory urlFactory = new SimpleUrlFactory( baseUrl );
+            ArrayList messages = new ArrayList();
+            IRuntimeContext context = null;
+            try {
+              context = solutionEngine.execute( sessionStartupAction.getActionPath(), "Session startup actions", false, true,
+                      instanceId, false, parameterProviderMap, outputHandler, null, urlFactory, messages ); //$NON-NLS-1$
 
-        IRuntimeContext context = null;
-        try {
-          context =
-              solutionEngine.execute( sessionStartupAction.getActionPath(), "Session startup actions", false, true,
-                  instanceId, false, parameterProviderMap, outputHandler, null, urlFactory, messages ); //$NON-NLS-1$
+              // if context is null, then we cannot check the status
+              if ( null == context ) {
+                return;
+              }
 
-          // if context is null, then we cannot check the status
-          if ( null == context ) {
-            return;
-          }
+              if ( context.getStatus() == IRuntimeContext.RUNTIME_STATUS_SUCCESS ) {
+                // now grab any outputs
+                Iterator outputNameIterator = context.getOutputNames().iterator();
+                while ( outputNameIterator.hasNext() ) {
+                  String attributeName = (String) outputNameIterator.next();
+                  IActionParameter output = context.getOutputParameter( attributeName );
 
-          if ( context.getStatus() == IRuntimeContext.RUNTIME_STATUS_SUCCESS ) {
-            // now grab any outputs
-            Iterator outputNameIterator = context.getOutputNames().iterator();
-            while ( outputNameIterator.hasNext() ) {
-
-              String attributeName = (String) outputNameIterator.next();
-              IActionParameter output = context.getOutputParameter( attributeName );
-
-              Object data = output.getValue();
-              if ( data != null ) {
-                session.removeAttribute( attributeName );
-                session.setAttribute( attributeName, data );
+                  Object data = output.getValue();
+                  if ( data != null ) {
+                    session.removeAttribute( attributeName );
+                    session.setAttribute( attributeName, data );
+                  }
+                }
+              }
+            } catch ( Throwable th ) {
+              Logger.warn( PentahoSystem.class.getName(), Messages.getInstance().getString(
+                  "PentahoSystem.WARN_UNABLE_TO_EXECUTE_SESSION_ACTION", th.getLocalizedMessage() ), th ); //$NON-NLS-1$
+            } finally {
+              if ( context != null ) {
+                context.dispose();
               }
             }
           }
-        } catch ( Throwable th ) {
-          Logger.warn( PentahoSystem.class.getName(), Messages.getInstance().getString(
-              "PentahoSystem.WARN_UNABLE_TO_EXECUTE_SESSION_ACTION", th.getLocalizedMessage() ), th ); //$NON-NLS-1$
-        } finally {
-          if ( context != null ) {
-            context.dispose();
-          }
         }
+      } finally {
+        session.setAttribute( "StartupActionsFired", true );
+      }
+    } else {
+      if ( debug ) {
+        Logger.debug( PentahoSystem.class, "Session startup actions already fired" );
       }
     }
   }

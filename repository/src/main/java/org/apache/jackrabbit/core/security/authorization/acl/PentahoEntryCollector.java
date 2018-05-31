@@ -1,17 +1,20 @@
 /*!
- * Copyright 2010 - 2016 Pentaho Corporation.  All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License, version 2 as published by the Free Software
+ * Foundation.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * You should have received a copy of the GNU General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/gpl-2.0.html
+ * or from the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
  *
  */
 
@@ -39,6 +42,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.core.NodeImpl;
 import org.apache.jackrabbit.core.SessionImpl;
 import org.apache.jackrabbit.core.id.NodeId;
+import org.apache.jackrabbit.core.security.authorization.AccessControlModifications;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeBits;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeManagerImpl;
 import org.pentaho.platform.api.engine.IAuthorizationPolicy;
@@ -84,10 +88,18 @@ public class PentahoEntryCollector extends EntryCollector {
 
   private List<MagicAceDefinition> magicAceDefinitions = new ArrayList<MagicAceDefinition>();
 
+  private List<MagicAceDefinition> getMagicAceDefinitions() {
+    return Collections.unmodifiableList( magicAceDefinitions );
+  }
+
   @SuppressWarnings( "rawtypes" )
   public PentahoEntryCollector( final SessionImpl systemSession, final NodeId rootID,  final Map configuration )
     throws RepositoryException {
     super( systemSession, rootID );
+    createMagicAceDefinitions( systemSession );
+  }
+
+  private void createMagicAceDefinitions( SessionImpl systemSession ) throws RepositoryException {
     ClassLoader loader = this.getClass().getClassLoader();
     InputStream yamlFileInputStream = loader.getResourceAsStream( "jcr/config.yaml" );
     magicAceDefinitions = MagicAceDefinition.parseYamlMagicAceDefinitions( yamlFileInputStream, systemSession );
@@ -264,7 +276,7 @@ public class PentahoEntryCollector extends EntryCollector {
     }
 
     ITenant tenant = JcrTenantUtils.getTenant();
-    for ( final MagicAceDefinition def : magicAceDefinitions ) {
+    for ( final MagicAceDefinition def : getMagicAceDefinitions() ) {
       match = false;
 
       String substitutedPath = MessageFormat.format( def.path, tenant.getRootFolderAbsolutePath() );
@@ -511,6 +523,24 @@ public class PentahoEntryCollector extends EntryCollector {
     }
 
     return entry;
+  }
+
+  @Override protected void notifyListeners( AccessControlModifications modifications ) {
+    super.notifyListeners( modifications );
+    /* Update cache for all affected access controlled nodes */
+    for ( Object key : modifications.getNodeIdentifiers() ) {
+      if ( !( key instanceof NodeId ) ) {
+        log.warn( "Cannot process AC modificationMap entry. Keys must be NodeId." );
+        continue;
+      }
+
+      try {
+        createMagicAceDefinitions( systemSession );
+      } catch ( RepositoryException e ) {
+        log.error( "Failed to recreate magic ace definitions on repository policy changed", e );
+      }
+    }
+    super.notifyListeners( modifications );
   }
 
   static class PentahoEntries extends Entries {

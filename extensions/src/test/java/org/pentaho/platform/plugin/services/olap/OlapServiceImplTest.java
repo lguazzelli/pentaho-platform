@@ -1,38 +1,38 @@
-/*
- * Copyright 2002 - 2017 Pentaho Corporation.  All rights reserved.
+/*!
  *
- * This software was developed by Pentaho Corporation and is provided under the terms
- * of the Mozilla Public License, Version 1.1, or any later version. You may not use
- * this file except in compliance with the license. If you need a copy of the license,
- * please go to http://www.mozilla.org/MPL/MPL-1.1.txt. The Initial Developer is Pentaho Corporation.
+ * This program is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
+ * Foundation.
  *
- * Software distributed under the Mozilla Public License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or  implied. Please refer to
- * the license for the specific language governing your rights and limitations.
+ * You should have received a copy of the GNU Lesser General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+ * or from the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Lesser General Public License for more details.
+ *
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.olap;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.sql.SQLException;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Properties;
-
 import mondrian.olap.CacheControl;
-import mondrian.olap.Connection;
 import mondrian.olap.MondrianServer;
 import mondrian.rolap.RolapConnection;
 import mondrian.rolap.RolapConnectionProperties;
+import mondrian.rolap.RolapSchema;
 import mondrian.rolap.agg.AggregationManager;
 import mondrian.xmla.XmlaHandler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.olap4j.OlapConnection;
 import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.repository2.unified.IRepositoryFileData;
@@ -46,20 +46,57 @@ import org.pentaho.platform.plugin.action.olap.impl.OlapServiceImpl;
 import org.pentaho.platform.repository2.ClientRepositoryPaths;
 import org.pentaho.platform.util.messages.LocaleHelper;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
-import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.*;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.sql.SQLException;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.hasData;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.isLikeFile;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.makeFileObject;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.makeIdObject;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.pathPropertyPair;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.stubCreateFile;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.stubCreateFolder;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.stubGetChildren;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.stubGetData;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.stubGetFile;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.stubGetFileDoesNotExist;
+import static org.pentaho.platform.repository2.unified.UnifiedRepositoryTestUtils.stubGetFolder;
+
+@RunWith ( MockitoJUnitRunner.class )
 public class OlapServiceImplTest {
 
-  IUnifiedRepository repository;
   String mondrianFolderPath;
   String olapFolderPath;
   IPentahoSession session;
   IOlapService olapService;
-  private MondrianServer server;
-  private XmlaHandler.XmlaExtra mockXmlaExtra;
+
+  @Mock IUnifiedRepository repository;
+  @Mock private MondrianServer server;
+  @Mock private XmlaHandler.XmlaExtra mockXmlaExtra;
+  @Mock AggregationManager aggManager;
+  @Mock CacheControl cacheControl;
 
   /**
    * Default implementation of the hook which grants all access.
@@ -84,8 +121,6 @@ public class OlapServiceImplTest {
   @Before
   public void setUp() throws Exception {
 
-    repository = mock( IUnifiedRepository.class );
-
     // Stub /etc/mondrian
     mondrianFolderPath =
       ClientRepositoryPaths.getEtcFolderPath()
@@ -103,19 +138,13 @@ public class OlapServiceImplTest {
     // Create a session as admin.
     session = new StandaloneSession( "admin" );
 
-    server = mock( MondrianServer.class );
-
-    AggregationManager aggManagerMock = mock( AggregationManager.class );
-    CacheControl cacheControlMock = mock( CacheControl.class );
-    doReturn( aggManagerMock ).when( server ).getAggregationManager();
-    doReturn( cacheControlMock ).when( aggManagerMock ).getCacheControl(
+    doReturn( aggManager ).when( server ).getAggregationManager();
+    doReturn( cacheControl ).when( aggManager ).getCacheControl(
       any( RolapConnection .class ), any( PrintWriter.class ) );
-
-    mockXmlaExtra = mock( XmlaHandler.XmlaExtra.class );
 
     // Create the olap service. Make sure to override hasAccess with the
     // mock version.
-    olapService = new OlapServiceImpl( repository, server ) {
+    olapService = spy( new OlapServiceImpl( repository, server ) {
       public boolean hasAccess(
         String path,
         EnumSet<RepositoryFilePermission> perms,
@@ -127,7 +156,7 @@ public class OlapServiceImplTest {
       protected XmlaHandler.XmlaExtra getXmlaExtra( final OlapConnection connection ) throws SQLException {
         return mockXmlaExtra;
       }
-    };
+    } );
   }
 
   @After public void tearDown() throws Exception {
@@ -194,7 +223,7 @@ public class OlapServiceImplTest {
     final String metadataPath = testFolderPath + RepositoryFile.SEPARATOR + "metadata";
     stubCreateFile( repository, metadataPath );
 
-    final InputStream is = this.getClass().getResourceAsStream("/solution/security/steelwheels.mondrian.xml" );
+    final InputStream is = this.getClass().getResourceAsStream( "/solution/security/steelwheels.mondrian.xml" );
 
 
     olapService.addHostedCatalog(
@@ -644,7 +673,7 @@ public class OlapServiceImplTest {
         pathPropertyPair( "/catalog/definition", "mondrian:/SteelWheels" ),
         pathPropertyPair( "/catalog/datasourceInfo", "Provider=mondrian;DataSource=SteelWheels;" ) );
 
-    final InputStream is = this.getClass().getResourceAsStream("/solution/security/steelwheels.mondrian.xml" );
+    final InputStream is = this.getClass().getResourceAsStream( "/solution/security/steelwheels.mondrian.xml" );
 
 
     // Try to save it without the overwrite flag. We expect it to fail.
@@ -761,26 +790,37 @@ public class OlapServiceImplTest {
   }
 
   @Test
-  public void testFlushesAllConnections() throws Exception {
-    stubHostedServer();
-    final Properties properties = new Properties();
-    properties.put( RolapConnectionProperties.Locale.name(), getLocale().toString() );
-    OlapConnection conn = mock( OlapConnection.class );
-    when( server.getConnection( "Pentaho", "myHostedServer", null, properties ) ).thenReturn( conn );
-    olapService.flushAll( session );
-    verify( mockXmlaExtra ).flushSchemaCache( conn );
+  public void flushSingleSchemaCache() throws Exception {
+    OlapConnection connection = mock( OlapConnection.class );
+    doReturn( connection ).when( olapService ).getConnection( "schemaX", session );
+
+    RolapConnection rc = mock( RolapConnection.class );
+    doReturn( rc ).when( connection ).unwrap( RolapConnection.class );
+    doReturn( cacheControl ).when( rc ).getCacheControl( any( PrintWriter.class ) );
+
+    RolapSchema schema = mock( RolapSchema.class );
+    doReturn( schema ).when( rc ).getSchema();
+
+    olapService.flush( session, "schemaX" );
+    verify( cacheControl, times( 1 ) ).flushSchema( schema );
   }
 
   @Test
-  public void testFlushStopsAfterFirstHosted() throws Exception {
-    stubHostedServers( "myHostedServer", "myHostedServer2" );
+  public void flushSingleSchemaCacheThrowsException() throws Exception {
+    try {
+      olapService.flush( session, "schemaX" );
+      fail();
+    } catch ( IOlapServiceException e ) {
+      verify( cacheControl, times( 0 ) ).flushSchema( any( RolapSchema.class ) );
+      assertEquals( "MondrianCatalogHelper.ERROR_0019 - Failed to flush schema schemaX", e.getMessage() );
+    }
+  }
 
-    final Properties properties = new Properties();
-    properties.put( RolapConnectionProperties.Locale.name(), getLocale().toString() );
-    OlapConnection conn = mock( OlapConnection.class );
-    when( server.getConnection( "Pentaho", "myHostedServer", null, properties ) ).thenReturn( conn );
+  @Test
+  public void flushAllFlushesSchemaCache() throws Exception {
+    stubHostedServers( "myHostedServer", "myHostedServer2" );
     olapService.flushAll( session );
-    verify( mockXmlaExtra, times( 1 ) ).flushSchemaCache( conn );
+    verify( cacheControl, times( 1 ) ).flushSchemaCache();
   }
 
   @Test

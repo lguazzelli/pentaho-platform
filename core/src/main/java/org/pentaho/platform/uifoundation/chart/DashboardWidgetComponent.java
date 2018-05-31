@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,8 +14,10 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
+
 package org.pentaho.platform.uifoundation.chart;
 
 import org.apache.commons.logging.Log;
@@ -43,7 +46,7 @@ import java.io.StringWriter;
 import java.util.List;
 
 /**
- * This class is a Pentaho user interface component.
+ * This class is a Hitachi Vantara user interface component.
  * <p/>
  * It generates dial images that can be embedded into JSPs, portals or other HTML supporting user interface.
  * <p/>

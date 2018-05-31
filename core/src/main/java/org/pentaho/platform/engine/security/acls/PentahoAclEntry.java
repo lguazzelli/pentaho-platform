@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2016 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.engine.security.acls;
@@ -35,7 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Base Pentaho Access Control entry. Subclassed <tt>AbstractBasicAclEntry</tt> from Spring Security project.
+ * Base Hitachi Vantara Access Control entry. Subclassed <tt>AbstractBasicAclEntry</tt> from Spring Security project.
  * Provides known access controls.
  *
  * @author mbatchel

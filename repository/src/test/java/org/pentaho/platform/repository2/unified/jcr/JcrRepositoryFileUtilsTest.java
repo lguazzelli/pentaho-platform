@@ -1,24 +1,23 @@
-/*! ******************************************************************************
+/*!
  *
- * Pentaho Data Integration
+ * This program is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License, version 2 as published by the Free Software
+ * Foundation.
  *
- * Copyright (C) 2002-2014 by Pentaho : http://www.pentaho.com
+ * You should have received a copy of the GNU General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/gpl-2.0.html
+ * or from the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- *******************************************************************************
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- ******************************************************************************/
+ */
+
 package org.pentaho.platform.repository2.unified.jcr;
 
 import static org.junit.Assert.assertNull;
@@ -30,9 +29,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -42,19 +44,30 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
+import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.jackrabbit.core.VersionManagerImpl;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.pentaho.platform.api.engine.IPentahoSession;
+import org.pentaho.platform.api.repository2.unified.IRepositoryAccessVoterManager;
 import org.pentaho.platform.api.repository2.unified.IRepositoryVersionManager;
+import org.pentaho.platform.api.repository2.unified.RepositoryFile;
+import org.pentaho.platform.api.repository2.unified.RepositoryFileTree;
+import org.pentaho.platform.api.repository2.unified.RepositoryRequest;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 /**
  * @author Tatsiana_Kasiankova
  */
+@RunWith( PowerMockRunner.class )
+@PrepareForTest( { JcrRepositoryFileAclUtils.class, JcrRepositoryFileUtils.class } )
 public class JcrRepositoryFileUtilsTest {
   /**
    *
@@ -77,7 +90,7 @@ public class JcrRepositoryFileUtilsTest {
   private PentahoSystem pentahoSystemMock = mock( PentahoSystem.class );
   private IRepositoryVersionManager repositoryVersionManagerMockTrue = mock( IRepositoryVersionManager.class );
   private IRepositoryVersionManager repositoryVersionManagerMockFalse = mock( IRepositoryVersionManager.class );
-  
+
   @Before
   public void setUp() throws UnsupportedRepositoryOperationException, RepositoryException {
     when( workspaceMock.getVersionManager() ).thenReturn( vmanagerMock );
@@ -160,7 +173,7 @@ public class JcrRepositoryFileUtilsTest {
     Node parentNode = mock( Node.class );
     IPentahoSession pentahoSession = mock( IPentahoSession.class );
     when( pentahoSession.getName() ).thenReturn( username );
-    
+
     JcrRepositoryFileUtils.setRepositoryVersionManager( repositoryVersionManagerMockTrue );
 
     VersionManagerImpl versionManager = mock( VersionManagerImpl.class );
@@ -254,6 +267,35 @@ public class JcrRepositoryFileUtilsTest {
 
     // verify version is deleted
     verify( mockVersionHistory ).removeVersion( (String) anyObject() );
+  }
+
+  @Test
+  public void testCheckNodeForTree() throws Exception {
+    List<RepositoryFileTree> children = new ArrayList<>();
+    IPathConversionHelper pathConversionHelper = new DefaultPathConversionHelper();
+    ILockHelper lockHelperMock = mock( ILockHelper.class );
+    IRepositoryAccessVoterManager repositoryAccessVoterManagerMock = mock( IRepositoryAccessVoterManager.class );
+    MutableBoolean foundFiltered = new MutableBoolean();
+    RepositoryFile fileMock = mock( RepositoryFile.class );
+
+    when( fileMock.getId() ).thenReturn( 1 );
+
+    PowerMockito.mockStatic( JcrRepositoryFileUtils.class );
+    PowerMockito.mockStatic( JcrRepositoryFileAclUtils.class );
+
+    PowerMockito.doCallRealMethod().when( JcrRepositoryFileUtils.class, "checkNodeForTree", nodeMock,
+      children, sessionMock, pJcrConstMock, pathConversionHelper, "childNodeFilter", lockHelperMock, 0, false, repositoryAccessVoterManagerMock, RepositoryRequest.FILES_TYPE_FILTER.FOLDERS, foundFiltered, true, false, "/" );
+    when( JcrRepositoryFileUtils.nodeToFile( sessionMock, pJcrConstMock, pathConversionHelper, lockHelperMock, nodeMock ) ).thenReturn( fileMock );
+    when( JcrRepositoryFileUtils.isSupportedNodeType( pJcrConstMock, nodeMock ) ).thenReturn( true );
+    when( JcrRepositoryFileAclUtils.getAcl( sessionMock, pJcrConstMock, 1 ) ).thenThrow( new AccessDeniedException() );
+
+    try {
+      JcrRepositoryFileUtils.checkNodeForTree( nodeMock, children, sessionMock, pJcrConstMock, pathConversionHelper,
+        "childNodeFilter", lockHelperMock, 0, false, repositoryAccessVoterManagerMock,
+        RepositoryRequest.FILES_TYPE_FILTER.FOLDERS, foundFiltered, true, false, "/" );
+    } catch ( Exception e ) {
+      fail();
+    }
   }
 
 }

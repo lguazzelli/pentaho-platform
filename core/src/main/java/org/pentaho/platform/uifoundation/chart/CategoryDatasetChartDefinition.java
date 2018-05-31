@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU General Public License, version 2 as published by the Free Software
  * Foundation.
@@ -13,7 +14,8 @@
  * See the GNU General Public License for more details.
  *
  *
- * Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.uifoundation.chart;
@@ -373,7 +375,7 @@ public class CategoryDatasetChartDefinition extends DefaultCategoryDataset imple
     // set legend border visible
     setLegendBorderVisible( chartAttributes.selectSingleNode( ChartDefinition.DISPLAY_LEGEND_BORDER_NODE_NAME ) );
 
-    // first see if Pentaho System sets this property
+    // first see if Hitachi Vantara System sets this property
     String defaultIncludeNullCategories =
         PentahoSystem.getSystemSetting( "Charting/" + INCLUDE_NULL_CATEGORIES_NODE_NAME, "true" ); //$NON-NLS-1$ //$NON-NLS-2$
 

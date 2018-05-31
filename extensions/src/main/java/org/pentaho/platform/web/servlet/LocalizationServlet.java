@@ -1,4 +1,5 @@
 /*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,7 +13,9 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.web.servlet;
@@ -36,8 +39,6 @@ import java.util.ResourceBundle;
 /**
  * This class makes a message bundle available as a JSON hash. This is designed to be used as a web service to allow
  * thin-clients to retrieve message bundles from the server.
- * 
- * @author Jordan Ganoff (jganoff@pentaho.com)
  */
 public class LocalizationServlet extends ServletBase {
 
@@ -62,6 +63,8 @@ public class LocalizationServlet extends ServletBase {
 
     try {
       String json = getJSONBundle( pluginId, name );
+      this.setCorsHeaders( req, resp );
+
       resp.setContentType( "text/plain" ); //$NON-NLS-1$
       resp.setStatus( HttpServletResponse.SC_OK );
       resp.setCharacterEncoding( LocaleHelper.getSystemEncoding() );

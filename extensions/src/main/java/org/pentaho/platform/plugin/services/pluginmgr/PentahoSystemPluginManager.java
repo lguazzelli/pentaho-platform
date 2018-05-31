@@ -1,23 +1,21 @@
 /*!
- * PENTAHO CORPORATION PROPRIETARY AND CONFIDENTIAL
  *
- * Copyright 2002 - 2014 Pentaho Corporation (Pentaho). All rights reserved.
+ * This program is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
+ * Foundation.
  *
- * NOTICE: All information including source code contained herein is, and
- * remains the sole property of Pentaho and its licensors. The intellectual
- * and technical concepts contained herein are proprietary and confidential
- * to, and are trade secrets of Pentaho and may be covered by U.S. and foreign
- * patents, or patents in process, and are protected by trade secret and
- * copyright laws. The receipt or possession of this source code and/or related
- * information does not convey or imply any rights to reproduce, disclose or
- * distribute its contents, or to manufacture, use, or sell anything that it
- * may describe, in whole or in part. Any reproduction, modification, distribution,
- * or public display of this information without the express written authorization
- * from Pentaho is strictly prohibited and in violation of applicable laws and
- * international treaties. Access to the source code contained herein is strictly
- * prohibited to anyone except those individuals and entities who have executed
- * confidentiality and non-disclosure agreements or other agreements with Pentaho,
- * explicitly covering such access.
+ * You should have received a copy of the GNU Lesser General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+ * or from the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Lesser General Public License for more details.
+ *
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
 
 package org.pentaho.platform.plugin.services.pluginmgr;
@@ -46,7 +44,6 @@ import org.pentaho.platform.api.engine.IPluginManagerListener;
 import org.pentaho.platform.api.engine.IPluginProvider;
 import org.pentaho.platform.api.engine.IPluginResourceLoader;
 import org.pentaho.platform.api.engine.IServiceManager;
-import org.pentaho.platform.api.engine.ISolutionFileMetaProvider;
 import org.pentaho.platform.api.engine.ISystemConfig;
 import org.pentaho.platform.api.engine.ObjectFactoryException;
 import org.pentaho.platform.api.engine.PlatformPluginRegistrationException;
@@ -510,7 +507,7 @@ public class PentahoSystemPluginManager implements IPluginManager {
 
 
     InputStream stream = resLoader.getResourceAsStream( loader, "settings.xml" );
-    if( stream == null ){
+    if ( stream == null ) {
       // No settings.xml is fine
       return;
     }
@@ -524,12 +521,12 @@ public class PentahoSystemPluginManager implements IPluginManager {
         properties.put( "settings/" + name, value );
       }
     } catch ( DocumentException | IOException e ) {
-      logger.error( "Error parsing settings.xml for plugin: "+ plugin.getId(), e );
+      logger.error( "Error parsing settings.xml for plugin: " + plugin.getId(), e );
     }
     try {
       systemConfig.registerConfiguration( new PropertiesFileConfiguration( plugin.getId(), properties ) );
     } catch ( IOException e ) {
-      logger.error( "Error registering settings.xml for plugin: "+ plugin.getId(), e );
+      logger.error( "Error registering settings.xml for plugin: " + plugin.getId(), e );
     }
 
   }
@@ -638,45 +635,6 @@ public class PentahoSystemPluginManager implements IPluginManager {
 
       registerReference( plugin.getId(), handle );
 
-
-      String metaProviderClass = plugin.getMetaProviderMap().get( info.getExtension() );
-
-      // if a meta-provider is defined for this content type, then register it...
-      if ( !StringUtils.isEmpty( metaProviderClass ) ) {
-        Class<?> clazz = null;
-        String defaultErrMsg =
-            Messages
-                .getInstance()
-                .getErrorString(
-                    "PluginManager.ERROR_0013_FAILED_TO_SET_CONTENT_TYPE_META_PROVIDER", metaProviderClass,
-                    info.getExtension() ); //$NON-NLS-1$
-
-        try {
-          // do a test load to fail early if class not found
-          clazz = loader.loadClass( metaProviderClass );
-        } catch ( Exception e ) {
-          throw new PlatformPluginRegistrationException( defaultErrMsg, e );
-        }
-
-        // check that the class is an accepted type
-        if ( !( ISolutionFileMetaProvider.class.isAssignableFrom( clazz ) ) ) {
-          throw new PlatformPluginRegistrationException(
-              Messages
-                  .getInstance()
-                  .getErrorString(
-                      "PluginManager.ERROR_0019_WRONG_TYPE_FOR_CONTENT_TYPE_META_PROVIDER", metaProviderClass,
-                      info.getExtension() )
-          ); //$NON-NLS-1$
-        }
-
-        // the class is ok, so register it with the factory
-        assertUnique( beanFactory, plugin.getId(), METAPROVIDER_KEY_PREFIX + info.getExtension() );
-        BeanDefinition beanDef =
-            BeanDefinitionBuilder.rootBeanDefinition( metaProviderClass ).setScope( BeanDefinition.SCOPE_PROTOTYPE )
-                .getBeanDefinition();
-        beanFactory.registerBeanDefinition( METAPROVIDER_KEY_PREFIX + info.getExtension(),
-            beanDef );
-      }
     }
   }
 
@@ -1028,16 +986,16 @@ public class PentahoSystemPluginManager implements IPluginManager {
       try {
         // key can be the plain setting name or "settings/" + key. The old system was flexible in this regard so we need
         // to be as well
-        if( pluginConfig.getProperties().containsKey( key ) ){
+        if ( pluginConfig.getProperties().containsKey( key ) ) {
           return pluginConfig.getProperties().getProperty( key );
         }
-        if( key.startsWith( SETTINGS_PREFIX ) ){
+        if ( key.startsWith( SETTINGS_PREFIX ) ) {
           return defaultValue;
         }
 
         // try it with settings on the front
         String compositeKey = SETTINGS_PREFIX + key;
-        if( pluginConfig.getProperties().containsKey( compositeKey ) ){
+        if ( pluginConfig.getProperties().containsKey( compositeKey ) ) {
           return pluginConfig.getProperties().getProperty( compositeKey );
         }
 

@@ -1,4 +1,5 @@
-/*
+/*!
+ *
  * This program is free software; you can redistribute it and/or modify it under the
  * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
  * Foundation.
@@ -12,8 +13,11 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright 2016 Pentaho Corporation. All rights reserved.
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ *
  */
+
 package org.pentaho.platform.osgi;
 
 import org.apache.commons.io.FileUtils;
@@ -388,6 +392,7 @@ public class KarafBoot implements IPentahoSystemListener {
         case PAN:
         case KITCHEN:
         case CARTE:
+        case SCALE:
         case OTHER:
           return "/etc-" + clientType.getID().toLowerCase();
       }

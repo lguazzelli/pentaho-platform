@@ -1,36 +1,24 @@
 /*!
- * Copyright 2010 - 2016 Pentaho Corporation.  All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License, version 2 as published by the Free Software
+ * Foundation.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * You should have received a copy of the GNU General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/gpl-2.0.html
+ * or from the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ *
+ * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
  *
  */
 
 package org.apache.jackrabbit.core.security.authorization.acl;
-
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.observation.Event;
-import javax.jcr.observation.ObservationManager;
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlList;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.core.NodeImpl;
@@ -41,6 +29,21 @@ import org.pentaho.platform.api.engine.ISystemConfig;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.ObservationManager;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Customization of {@link ACLProvider}.
@@ -118,6 +121,32 @@ public class PentahoACLProvider extends ACLProvider {
       editor.setPolicy( rootPath, acList );
       session.save();
     }
+  }
+
+  /**
+   * Returns true if the root acl needs updating (if the JCR_READ_ACCESS_CONTROL privilege is missing from the
+   * 'everyone' principle) and false otherwise.
+   */
+  protected boolean requireRootAclUpdate( ACLEditor editor ) throws RepositoryException {
+    final String rootPath = session.getRootNode().getPath();
+    final AccessControlPolicy[] acls = editor.getPolicies( rootPath );
+    if ( acls != null &&  acls.length > 0 ) {
+      final PrincipalManager pMgr = session.getPrincipalManager();
+      final AccessControlManager acMgr = session.getAccessControlManager();
+      final Privilege jcrReadAccessControlPriv =  acMgr.privilegeFromName( Privilege.JCR_READ_ACCESS_CONTROL );
+      final Principal everyone = pMgr.getEveryone();
+      final AccessControlList acList = (AccessControlList) acls[0];
+      final AccessControlEntry[] acEntries = acList.getAccessControlEntries();
+      if ( acEntries != null ) {
+        for ( AccessControlEntry acEntry : acEntries ) {
+          if ( acEntry.getPrincipal() != null && acEntry.getPrincipal().equals( everyone )
+            && acEntry.getPrivileges() != null ) {
+            return !Arrays.asList( acEntry.getPrivileges() ).contains( jcrReadAccessControlPriv );
+          }
+        }
+      }
+    }
+    return true;
   }
 
   /**
