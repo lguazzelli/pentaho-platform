@@ -260,6 +260,7 @@
     <hibernate-jpa-2.0-api.version>1.0.1.Final</hibernate-jpa-2.0-api.version>
     <hsqldb.version>2.3.2</hsqldb.version>
     <apache-log4j-extras>1.2.17</apache-log4j-extras>
+	<dependency-check-format>HTML</dependency-check-format>
   </properties>
   <build>
     <pluginManagement>
@@ -314,6 +315,19 @@
         </reportPlugins>
       </configuration>
     </plugin>
+<!-- OWASP Dependency Check -->			
+            <plugin>
+              <groupId>org.owasp</groupId>
+              <artifactId>dependency-check-maven</artifactId>
+              <version>3.2.1</version>
+				<configuration>
+                    <!-- Skip artifacts not bundled in distribution (provided scope) -->
+                    <skipProvidedScope>true</skipProvidedScope>
+                    <!-- Suppress false positives or dependencies that cannot be changed for specific reasons.-->
+                    <!--suppressionFile>suppressed-cves.xml</suppressionFile-->
+                    <format>${dependency-check-format}</format>
+                </configuration>
+            </plugin>
 <!-- FindBugs Static Analysis -->
         <plugin>
             <groupId>org.codehaus.mojo</groupId>
@@ -333,7 +347,30 @@
                     </plugin>
                 </plugins>
             </configuration>
-        </plugin>	
+        </plugin>
+ <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-plugin</artifactId>
+                <version>${version.maven-plugin-plugin}</version>
+                <configuration>
+                    <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
+                    <goalPrefix>dependency-check</goalPrefix>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>mojo-descriptor</id>
+                        <goals>
+                            <goal>descriptor</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>generated-helpmojo</id>
+                        <goals>
+                            <goal>helpmojo</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>		
       </plugins>
     </pluginManagement>
   </build>
@@ -408,6 +445,19 @@
               </reportSet>
             </reportSets>
           </plugin>
+<!-- OWASP dependency-check -->
+			<plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>3.2.1</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>aggregate</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>		  
           <plugin>
             <artifactId>maven-javadoc-plugin</artifactId>
             <reportSets>
@@ -432,6 +482,20 @@
               </reportSet>
             </reportSets>
           </plugin>
+<!--		  
+		  <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>3.2.1</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>aggregate</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+-->			
         </plugins>
       </reporting>
     </profile>
